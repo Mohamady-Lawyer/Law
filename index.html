@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>مصاريف اليوم</title>
+<meta name="theme-color" content="#0e1621">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+
+  <header class="top">
+    <button id="btnBack" class="back" aria-label="رجوع" hidden></button>
+    <h1 id="ttl">مصاريف اليوم</h1>
+    <div class="acts">
+      <button id="btnTheme" class="ib" aria-label="تبديل الوضع"></button>
+      <button id="btnSet" class="ib" aria-label="الإعدادات"></button>
+    </div>
+  </header>
+
+  <main id="viewMain">
+    <nav class="tabs">
+      <button class="tab on" data-tab="1">إدخال</button>
+      <button class="tab" data-tab="2">المحفوظ</button>
+    </nav>
+
+    <section id="p1">
+      <div class="card">
+        <h2>بيانات اليوم</h2>
+        <div class="daterow">
+          <span class="lbl">اليوم</span>
+          <span class="dval">
+            <b id="dDateTxt"></b>
+            <button id="btnDate" class="ib sm" aria-label="تغيير التاريخ"></button>
+            <input type="date" id="dDateIn" class="hid" tabindex="-1" aria-hidden="true">
+          </span>
+        </div>
+        <div class="grid2 g-bal">
+          <div>
+            <label for="dBal">رصيد اليوم</label>
+            <input id="dBal" type="number" step="1" inputmode="decimal">
+          </div>
+          <div>
+            <label for="dPlace">مكان العمل</label>
+            <input id="dPlace" type="text" placeholder="مثال: محكمة شمال القاهرة" autocomplete="off">
+          </div>
+        </div>
+        <label for="dTasks">مهام اليوم</label>
+        <textarea id="dTasks" rows="2"></textarea>
+      </div>
+
+      <div class="card">
+        <h2>إضافة مصروف</h2>
+        <div class="grid2 g-add">
+          <div>
+            <label for="iAmt">المبلغ</label>
+            <input id="iAmt" type="number" step="1" inputmode="decimal" placeholder="0">
+          </div>
+          <div>
+            <label for="iReason">سبب الصرف</label>
+            <input id="iReason" type="text" placeholder="مثال: ميكروباص" autocomplete="off">
+          </div>
+        </div>
+        <div class="btnrow">
+          <button id="btnAdd" class="btn grow" data-ic="plus">حفظ</button>
+          <button id="btnCancelEdit" class="btn" hidden>إلغاء التعديل</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>مصاريف اليوم</h2>
+        <div id="items"></div>
+        <div id="tot"></div>
+      </div>
+
+      <button id="btnSaveDay" class="btn primary big">حفظ اليوم</button>
+    </section>
+
+    <section id="p2" hidden>
+      <div id="cards"></div>
+    </section>
+  </main>
+
+  <section id="viewSet" hidden>
+    <div class="card">
+      <h2>تصدير البيانات</h2>
+      <p class="note">انسخ الكود ده واحفظه في مكان أمان (رسالة لنفسك مثلاً). تقدر تستورده في أي وقت أو على جهاز تاني.</p>
+      <textarea id="expCode" rows="4" readonly dir="ltr"></textarea>
+      <div class="btnrow">
+        <button id="btnCopy" class="btn grow" data-ic="copy">نسخ الكود</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>استيراد البيانات</h2>
+      <p class="note">الصق الكود هنا. الاستيراد بيستبدل كل البيانات الحالية.</p>
+      <textarea id="impCode" rows="4" dir="ltr" placeholder="DX1:..."></textarea>
+      <div class="btnrow">
+        <button id="btnImport" class="btn grow" data-ic="check">استيراد</button>
+      </div>
+    </div>
+    <p class="foot">الإصدار 1.0 - البيانات محفوظة على هذا الجهاز فقط، فصدّر الكود كل فترة.</p>
+  </section>
+
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+<script src="app.js"></script>
+</body>
+</html>
