@@ -2,6 +2,7 @@
   'use strict';
 
   var KEY = 'dailyExpenses_v1';
+  var KEY_P = 'dailyExpenses_personal_v1';
   var THEME_KEY = 'dailyExpenses_theme';
   var DAYS = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
 
@@ -29,7 +30,7 @@
   var el = {};
   ['btnBack', 'ttl', 'btnTheme', 'btnSet', 'viewMain', 'viewSet', 'p1', 'p2', 'dDateTxt', 'btnDate', 'dDateIn',
     'dBal', 'dPlace', 'dTasks', 'iAmt', 'iReason', 'btnAdd', 'btnCancelEdit', 'items', 'tot', 'btnSaveDay',
-    'cards', 'expCode', 'btnCopy', 'impCode', 'btnImport', 'toast', 'btnPrintSel', 'btnQr', 'qrBox', 'qrCv', 'qrMsg', 'btnScan', 'scanner', 'scVideo', 'btnScClose', 'printArea'].forEach(function (id) { el[id] = $(id); });
+    'cards', 'expCode', 'btnCopy', 'impCode', 'btnImport', 'toast', 'btnPrintSel', 'btnQr', 'qrBox', 'qrCv', 'qrMsg', 'btnScan', 'scanner', 'scVideo', 'btnScClose', 'printArea', 'viewGate', 'app', 'btnGate', 'gateWork', 'gatePers', 'lblPlace', 'tasksBox', 'impCards', 'btnImpCards'].forEach(function (id) { el[id] = $(id); });
 
   function p2(n) { return n < 10 ? '0' + n : '' + n; }
   function todayStr() { var d = new Date(); return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()); }
@@ -48,24 +49,28 @@
 
   var state = { days: [], draft: null };
   var ui = { tab: 1, open: null, edit: null, editingIdx: -1, selMode: false, sel: {} };
+  var sec = 'work';
 
   function newDraft() { return { date: todayStr(), balance: '', place: '', tasks: '', items: [] }; }
   function draftBlank(d) { return d.balance === '' && !d.place && !d.tasks && !d.items.length; }
 
-  function load() {
+  function secKey(n) { return n === 'personal' ? KEY_P : KEY; }
+  function readSec(n) {
+    var r = { days: [], draft: newDraft() };
     try {
-      var raw = localStorage.getItem(KEY);
+      var raw = localStorage.getItem(secKey(n));
       if (raw) {
         var o = JSON.parse(raw);
-        if (o && Array.isArray(o.days)) state.days = o.days;
-        if (o && o.draft && typeof o.draft === 'object') state.draft = o.draft;
+        if (o && Array.isArray(o.days)) r.days = o.days;
+        if (o && o.draft && Array.isArray(o.draft.items)) r.draft = o.draft;
       }
     } catch (e) { }
-    if (!state.draft || !Array.isArray(state.draft.items)) state.draft = newDraft();
-    if (!state.draft.date) state.draft.date = todayStr();
-    refreshDateIfBlank();
+    if (!r.draft.date) r.draft.date = todayStr();
+    return r;
   }
-  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { } }
+  function writeSec(n, o) { try { localStorage.setItem(secKey(n), JSON.stringify({ days: o.days, draft: o.draft })); } catch (e) { } }
+  function load() { var r = readSec(sec); state.days = r.days; state.draft = r.draft; refreshDateIfBlank(); }
+  function save() { writeSec(sec, state); }
 
   function refreshDateIfBlank() {
     if (draftBlank(state.draft) && state.draft.date !== todayStr()) {
@@ -205,7 +210,7 @@
     if (dup && !confirm('فيه كارت محفوظ بنفس التاريخ (' + fmtDate(d.date) + '). تحفظ برضه؟')) return;
     state.days.push({
       id: Date.now(), date: d.date, balance: d.balance,
-      place: d.place.trim(), tasks: d.tasks.trim(),
+      place: d.place.trim(), tasks: sec === 'work' ? d.tasks.trim() : '',
       items: d.items.map(function (i) { return { amt: num(i.amt), reason: i.reason }; })
     });
     state.draft = newDraft();
@@ -241,7 +246,7 @@
     });
   }
   enterTo(el.dBal, el.dPlace);
-  enterTo(el.dPlace, el.dTasks);
+  enterTo(el.dPlace, function () { (sec === 'work' ? el.dTasks : el.iAmt).focus(); });
   enterTo(el.dTasks, el.iAmt);
   enterTo(el.iAmt, el.iReason);
   enterTo(el.iReason, addItem);
@@ -279,18 +284,18 @@
   function viewBody(d) {
     var h = '';
     if (hasVal(d.balance)) h += '<div class="line"><span>رصيد اليوم</span><span>' + esc(fmt(num(d.balance))) + '</span></div>';
-    if (d.tasks) h += '<div class="tasks"><i>المهام: </i>' + esc(d.tasks) + '</div>';
+    if (d.tasks && sec === 'work') h += '<div class="tasks"><i>المهام: </i>' + esc(d.tasks) + '</div>';
     h += itemsViewHtml(d.items);
     h += '<div id="ct">' + totalsHtml(d.items, d.balance) + '</div>';
-    h += '<div class="cbtns"><div class="row"><button class="btn w" data-act="edit">' + ic('edit') + 'تعديل</button><button class="ib" data-act="print1" aria-label="طباعة الكارت">' + ic('print') + '</button></div></div>';
+    h += '<div class="cbtns"><div class="row"><button class="btn w" data-act="edit">' + ic('edit') + 'تعديل</button><button class="ib" data-act="print1" aria-label="طباعة الكارت">' + ic('print') + '</button><button class="ib" data-act="copy1" aria-label="نسخ كود الكارت">' + ic('copy') + '</button></div></div>';
     return h;
   }
 
   function editBody(e) {
     var h = '<div class="grid2"><div><label>التاريخ</label><input type="date" data-f="date" value="' + esc(e.date) + '"></div>' +
       '<div><label>رصيد اليوم</label><input type="number" step="1" inputmode="decimal" data-f="balance" value="' + esc(e.balance) + '"></div></div>';
-    h += '<label>مكان العمل</label><input type="text" data-f="place" value="' + esc(e.place) + '" style="margin-bottom:8px">';
-    h += '<label>مهام اليوم</label><textarea rows="2" data-f="tasks" style="margin-bottom:10px">' + esc(e.tasks) + '</textarea>';
+    h += '<label>' + placeLbl() + '</label><input type="text" data-f="place" value="' + esc(e.place) + '" style="margin-bottom:' + (sec === 'work' ? '8' : '10') + 'px">';
+    if (sec === 'work') h += '<label>مهام اليوم</label><textarea rows="2" data-f="tasks" style="margin-bottom:10px">' + esc(e.tasks) + '</textarea>';
     if (e.items.length) h += '<div class="rw t"><span>م</span><span>المبلغ</span><span>سبب الصرف</span><span></span></div>';
     e.items.forEach(function (it, i) {
       h += '<div class="rw"><span class="n">' + (i + 1) + '</span>' +
@@ -396,6 +401,11 @@
     } else if (act === 'printsel') {
       var arr = sorted().filter(function (x) { return ui.sel[x.id]; });
       if (arr.length) printDays(arr);
+    } else if (act === 'copysel') {
+      var arr2 = sorted().filter(function (x) { return ui.sel[x.id]; });
+      if (arr2.length) exportCards(arr2);
+    } else if (act === 'copy1') {
+      var d2 = findDay(id); if (d2) exportCards([d2]);
     }
   });
 
@@ -425,12 +435,39 @@
     if (k >= 0 && k < all.length - 1) all[k + 1].focus();
   });
 
+  /* ---------- sections + gate ---------- */
+  function secTitle() { return sec === 'personal' ? 'مصاريف شخصية' : 'مصاريف العمل'; }
+  function secName(x) { return (x || sec) === 'personal' ? 'الشخصي' : 'العمل'; }
+  function placeLbl() { return sec === 'personal' ? 'أماكن الشراء' : 'مكان العمل'; }
+  function applySection() {
+    el.lblPlace.textContent = placeLbl();
+    el.dPlace.placeholder = sec === 'personal' ? 'مثال: سوبر ماركت، صيدلية' : 'مثال: محكمة شمال القاهرة';
+    el.tasksBox.hidden = sec === 'personal';
+    el.ttl.textContent = secTitle();
+  }
+  function enterSection(n) {
+    sec = n;
+    ui.open = null; ui.edit = null; ui.editingIdx = -1; ui.selMode = false; ui.sel = {};
+    load();
+    el.iAmt.value = ''; el.iReason.value = '';
+    applySection(); fillDraftFields(); renderItems(); setAddBtn(); renderCards();
+    el.viewGate.hidden = true; el.app.hidden = false;
+    showSettings(false);
+    setTab(1);
+  }
+  function showGate() {
+    stopScan();
+    el.app.hidden = true; el.viewGate.hidden = false;
+    window.scrollTo(0, 0);
+  }
+
   /* ---------- select mode + printing ---------- */
   function selBar() {
     if (!ui.selMode) return '';
     var n = Object.keys(ui.sel).length;
     return '<div class="selbar"><button class="btn" data-act="selall">تحديد الكل</button>' +
       '<button class="btn primary" data-act="printsel"' + (n ? '' : ' disabled') + '>' + ic('print') + 'طباعة (' + n + ')</button>' +
+      '<button class="btn" data-act="copysel"' + (n ? '' : ' disabled') + '>' + ic('copy') + 'نسخ كود</button>' +
       '<button class="btn" data-act="selcancel">إلغاء</button></div>';
   }
   function syncHdr() { el.btnPrintSel.hidden = !el.viewSet.hidden || ui.tab !== 2; }
@@ -446,7 +483,7 @@
     var t = totalOf(d.items);
     var h = '<div class="pcard"><div class="pt"><b>' + esc(dayName(d.date)) + ' ' + fmtDate(d.date) + '</b>' + (d.place ? '<span>' + esc(d.place) + '</span>' : '') + '</div>';
     if (hasVal(d.balance)) h += '<div class="pl"><span>رصيد اليوم:</span> ' + esc(fmt(num(d.balance))) + '</div>';
-    if (d.tasks) h += '<div class="pl"><span>المهام:</span> ' + esc(d.tasks).replace(/\n/g, '<br>') + '</div>';
+    if (d.tasks && sec === 'work') h += '<div class="pl"><span>المهام:</span> ' + esc(d.tasks).replace(/\n/g, '<br>') + '</div>';
     if (d.items.length) {
       h += '<table><tr><th>م</th><th>المبلغ</th><th>سبب الصرف</th></tr>';
       d.items.forEach(function (it, i) { h += '<tr><td>' + (i + 1) + '</td><td class="am">' + esc(fmt(num(it.amt))) + '</td><td>' + esc(it.reason) + '</td></tr>'; });
@@ -459,7 +496,7 @@
   function printDays(list) {
     var now = new Date(), pd = p2(now.getDate()) + '/' + p2(now.getMonth() + 1) + '/' + now.getFullYear(), h = '';
     for (var i = 0; i < list.length; i += 2) {
-      h += '<div class="ppage"><div class="phead"><b>مصاريف اليوم</b><span>تاريخ الطباعة: ' + pd + '</span></div>';
+      h += '<div class="ppage"><div class="phead"><b>' + secTitle() + '</b><span>تاريخ الطباعة: ' + pd + '</span></div>';
       for (var j = i; j < Math.min(i + 2, list.length); j++) h += printCard(list[j]);
       h += '</div>';
     }
@@ -474,17 +511,18 @@
     var w = stream.writable.getWriter(); w.write(data); w.close();
     return new Response(stream.readable).arrayBuffer().then(function (x) { return new Uint8Array(x); });
   }
-  function exportCode() {
-    var raw = new TextEncoder().encode(JSON.stringify({ v: 1, days: state.days, draft: state.draft })), c1 = 'DX1:' + b64e(raw);
+  function encodeCode(obj, pf) {
+    var raw = new TextEncoder().encode(JSON.stringify(obj)), c1 = pf + '1:' + b64e(raw);
     if (typeof CompressionStream === 'undefined') return Promise.resolve(c1);
     return pipe(new CompressionStream('deflate'), raw).then(function (z) {
-      var c2 = 'DX2:' + b64e(z); return c2.length < c1.length ? c2 : c1;
+      var c2 = pf + '2:' + b64e(z); return c2.length < c1.length ? c2 : c1;
     }, function () { return c1; });
   }
+  function exportCode() { return encodeCode({ v: 2, work: readSec('work'), personal: readSec('personal') }, 'DX'); }
   function decodeCode(raw) {
-    var p = raw.slice(0, 4), body = raw.slice(4);
-    if (p === 'DX1:') return JSON.parse(new TextDecoder().decode(b64d(body)));
-    if (p === 'DX2:' && typeof DecompressionStream !== 'undefined')
+    var k = raw.charAt(2), body = raw.slice(4);
+    if (k === '1') return JSON.parse(new TextDecoder().decode(b64d(body)));
+    if (k === '2' && typeof DecompressionStream !== 'undefined')
       return pipe(new DecompressionStream('deflate'), b64d(body)).then(function (u) { return JSON.parse(new TextDecoder().decode(u)); });
     throw new Error('bad');
   }
@@ -495,11 +533,12 @@
     el.viewMain.hidden = on;
     el.viewSet.hidden = !on;
     el.btnBack.hidden = !on;
+    el.btnGate.hidden = on;
     el.btnSet.hidden = on;
-    el.ttl.textContent = on ? 'الإعدادات' : 'مصاريف اليوم';
+    el.ttl.textContent = on ? 'الإعدادات' : secTitle();
     el.qrBox.hidden = true;
     syncHdr();
-    if (on) { el.expCode.value = ''; el.impCode.value = ''; refreshCode(); }
+    if (on) { el.expCode.value = ''; el.impCode.value = ''; el.impCards.value = ''; refreshCode(); }
     window.scrollTo(0, 0);
   }
 
@@ -566,54 +605,124 @@
     }, function () { toast('لازم تسمح بالوصول للكاميرا'); });
   }
 
-  function applyImport(o) {
-    if (!o || o.v !== 1 || !Array.isArray(o.days)) { toast('الكود ده مش صحيح'); return; }
-    var days = [];
-    for (var i = 0; i < o.days.length; i++) {
-      var x = o.days[i];
-      if (!x || !/^\d{4}-\d{2}-\d{2}$/.test(String(x.date)) || !Array.isArray(x.items)) { toast('الكود فيه بيانات تالفة'); return; }
-      days.push({
+  function cleanDays(arr) {
+    var out = [];
+    for (var i = 0; i < arr.length; i++) {
+      var x = arr[i];
+      if (!x || !/^\d{4}-\d{2}-\d{2}$/.test(String(x.date)) || !Array.isArray(x.items)) return null;
+      out.push({
         id: x.id || (Date.now() + i), date: x.date,
         balance: (x.balance === null || x.balance === undefined) ? '' : String(x.balance),
         place: String(x.place || ''), tasks: String(x.tasks || ''),
         items: x.items.map(function (it) { return { amt: num(it.amt), reason: String(it.reason || '') }; })
       });
     }
-    if (!confirm('هيتم استبدال كل البيانات الحالية بـ ' + days.length + ' كارت من الكود. تكمل؟')) return;
-    state.days = days;
-    var dr = o.draft;
-    state.draft = (dr && Array.isArray(dr.items) && /^\d{4}-\d{2}-\d{2}$/.test(String(dr.date))) ? {
+    return out;
+  }
+  function cleanDraft(dr) {
+    return (dr && Array.isArray(dr.items) && /^\d{4}-\d{2}-\d{2}$/.test(String(dr.date))) ? {
       date: dr.date, balance: dr.balance === undefined || dr.balance === null ? '' : String(dr.balance),
       place: String(dr.place || ''), tasks: String(dr.tasks || ''),
       items: dr.items.map(function (it) { return { amt: num(it.amt), reason: String(it.reason || '') }; })
     } : newDraft();
+  }
+  function secFrom(x) {
+    if (!x || !Array.isArray(x.days)) return null;
+    var d = cleanDays(x.days);
+    return d ? { days: d, draft: cleanDraft(x.draft) } : null;
+  }
+
+  function applyImport(o) {
+    var w = null, p = null, msg;
+    if (o && o.v === 2 && o.work && o.personal) {
+      w = secFrom(o.work); p = secFrom(o.personal);
+      if (!w || !p) { toast('الكود فيه بيانات تالفة'); return; }
+      msg = 'هيتم استبدال كل بيانات القسمين: العمل (' + w.days.length + ' كارت) والشخصي (' + p.days.length + ' كارت). تكمل؟';
+    } else if (o && o.v === 1 && Array.isArray(o.days)) {
+      w = secFrom(o);
+      if (!w) { toast('الكود فيه بيانات تالفة'); return; }
+      msg = 'ده كود قديم لقسم العمل. هيتم استبدال كروت العمل (' + w.days.length + ' كارت) وقسم الشخصي مش هيتغير. تكمل؟';
+    } else { toast('الكود ده مش صحيح'); return; }
+    if (!confirm(msg)) return;
+    if (w) writeSec('work', w);
+    if (p) writeSec('personal', p);
     ui.open = null; ui.edit = null; ui.editingIdx = -1; ui.selMode = false; ui.sel = {};
-    save(); fillDraftFields(); renderItems(); setAddBtn(); renderCards();
+    load();
+    el.iAmt.value = ''; el.iReason.value = '';
+    fillDraftFields(); renderItems(); setAddBtn(); renderCards();
     el.impCode.value = '';
     el.qrBox.hidden = true;
     refreshCode();
-    toast('تم الاستيراد: ' + days.length + ' كارت');
+    toast('تم الاستيراد');
   }
 
   function importCode() {
     var raw = el.impCode.value.replace(/\s+/g, '');
     if (!raw) { toast('الصق الكود الأول'); return; }
+    if (/^DC[12]:/.test(raw)) { toast('ده كود كروت فردية. استخدم خانة استيراد الكروت الفردية'); return; }
     if (!/^DX[12]:/.test(raw)) { toast('الكود ده مش صحيح'); return; }
     Promise.resolve().then(function () { return decodeCode(raw); }).then(applyImport, function () { toast('الكود ده مش صحيح أو ناقص'); });
   }
 
-  function copyCode() {
-    var t = el.expCode.value;
-    function fallback() {
-      el.expCode.focus(); el.expCode.select();
-      var ok = false;
-      try { ok = document.execCommand('copy'); } catch (e) { }
-      toast(ok ? 'تم نسخ الكود' : 'انسخ الكود يدويًا من الخانة');
-    }
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(t).then(function () { toast('تم نسخ الكود'); }, fallback);
-    } else fallback();
+  function cardsObj(list) {
+    return {
+      v: 1, kind: 'cards', section: sec,
+      cards: list.map(function (d) { return { id: d.id, date: d.date, balance: d.balance, place: d.place, tasks: d.tasks, items: d.items }; })
+    };
   }
+  function exportCards(list) {
+    encodeCode(cardsObj(list), 'DC').then(function (c) {
+      copyText(c, list.length > 1 ? 'تم نسخ كود ' + list.length + ' كروت' : 'تم نسخ كود الكارت');
+    });
+  }
+
+  function applyCards(o) {
+    if (!o || o.kind !== 'cards' || !Array.isArray(o.cards) || !o.cards.length) { toast('الكود ده مش صحيح'); return; }
+    var list = cleanDays(o.cards);
+    if (!list) { toast('الكود فيه بيانات تالفة'); return; }
+    var dup = list.filter(function (c) { return findDay(c.id); }).length;
+    var sameDate = list.filter(function (c) { return !findDay(c.id) && state.days.some(function (x) { return x.date === c.date; }); }).length;
+    var msg = 'هتضيف ' + list.length + ' كارت على كروت ' + secName() + ':\n' +
+      list.slice(0, 3).map(function (c) { return '- ' + dayName(c.date) + ' ' + fmtDate(c.date) + (c.place ? ' (' + c.place + ')' : ''); }).join('\n') +
+      (list.length > 3 ? '\n...' : '');
+    if (o.section && o.section !== sec) msg += '\n\nالكروت دي من قسم ' + secName(o.section) + '.';
+    if (sameDate) msg += '\n\nفيه ' + sameDate + ' منهم بنفس تاريخ كروت عندك وهيتضافوا برضه.';
+    if (!confirm(msg + '\n\nتكمل؟')) return;
+    var replace = dup > 0 && confirm(dup + ' كارت موجود عندك بالفعل. موافق = استبدالهم بالجديد، إلغاء = تجاهلهم.');
+    var added = 0, rep = 0;
+    list.forEach(function (c) {
+      var ex = findDay(c.id);
+      if (ex) { if (replace) { state.days[state.days.indexOf(ex)] = c; rep++; } }
+      else { state.days.push(c); added++; }
+    });
+    save(); renderCards();
+    el.impCards.value = '';
+    refreshCode();
+    toast('اتضاف ' + added + (rep ? ' واتستبدل ' + rep : '') + ' كارت');
+  }
+
+  function importCards() {
+    var raw = el.impCards.value.replace(/\s+/g, '');
+    if (!raw) { toast('الصق الكود الأول'); return; }
+    if (/^DX[12]:/.test(raw)) { toast('ده كود نسخة احتياطية كاملة. استخدم خانة الاستيراد العادية'); return; }
+    if (!/^DC[12]:/.test(raw)) { toast('الكود ده مش صحيح'); return; }
+    Promise.resolve().then(function () { return decodeCode(raw); }).then(applyCards, function () { toast('الكود ده مش صحيح أو ناقص'); });
+  }
+
+  function copyText(t, ok) {
+    function fb() {
+      var ta = document.createElement('textarea');
+      ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      var r = false;
+      try { r = document.execCommand('copy'); } catch (e) { }
+      document.body.removeChild(ta);
+      toast(r ? ok : 'تعذّر النسخ');
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(function () { toast(ok); }, fb);
+    else fb();
+  }
+  function copyCode() { copyText(el.expCode.value, 'تم نسخ الكود'); }
 
   el.btnSet.addEventListener('click', function () { showSettings(true); });
   el.btnBack.addEventListener('click', function () { showSettings(false); });
@@ -622,6 +731,10 @@
   el.btnImport.addEventListener('click', importCode);
   el.btnScan.addEventListener('click', startScan);
   el.btnScClose.addEventListener('click', stopScan);
+  el.btnImpCards.addEventListener('click', importCards);
+  el.btnGate.addEventListener('click', showGate);
+  el.gateWork.addEventListener('click', function () { enterSection('work'); });
+  el.gatePers.addEventListener('click', function () { enterSection('personal'); });
   el.btnTheme.addEventListener('click', function () {
     applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
   });
@@ -651,6 +764,7 @@
 
   /* ---------- init ---------- */
   el.btnBack.innerHTML = ic('back');
+  el.btnGate.innerHTML = ic('back');
   el.btnSet.innerHTML = ic('gear');
   el.btnDate.innerHTML = ic('cal');
   el.btnPrintSel.innerHTML = ic('print');

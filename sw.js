@@ -1,4 +1,4 @@
-var CACHE = 'daily-expenses-v2';
+var CACHE = 'daily-expenses-v3';
 var FILES = ['./', 'index.html', 'style.css', 'app.js', 'qrcode.js', 'jsqr.js', 'manifest.json', 'icons/icon-192.png', 'icons/icon-512.png'];
 
 self.addEventListener('install', function (e) {

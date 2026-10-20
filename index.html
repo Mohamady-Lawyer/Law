@@ -11,10 +11,23 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="app">
+<div id="viewGate" class="gate">
+  <div class="gate-hero">
+    <div class="gate-logo"><div class="gate-logo-plate"><img src="icons/icon-192.png" alt=""></div></div>
+    <h1 class="gate-title">مصاريف اليوم</h1>
+    <p class="gate-sub">اختر القسم</p>
+  </div>
+  <div class="gate-actions">
+    <button id="gateWork" class="gate-card"><span class="gate-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v9a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2l0 -9"/><path d="M8 7v-2a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2"/><path d="M3 13a20 20 0 0 0 18 0"/></svg></span><span class="gate-text"><b>مصاريف العمل</b><small>المكان والرصيد والمهام والبنود</small></span><span class="gate-chev"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></span></button>
+    <button id="gatePers" class="gate-card"><span class="gate-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 8v-3a1 1 0 0 0 -1 -1h-10a2 2 0 0 0 0 4h12a1 1 0 0 1 1 1v3m0 4v3a1 1 0 0 1 -1 1h-12a2 2 0 0 1 -2 -2v-12"/><path d="M20 12v4h-4a2 2 0 0 1 0 -4h4"/></svg></span><span class="gate-text"><b>مصاريف شخصية</b><small>الرصيد وأماكن الشراء والبنود</small></span><span class="gate-chev"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></span></button>
+  </div>
+</div>
+
+<div class="app" id="app" hidden>
 
   <header class="top">
-    <button id="btnBack" class="back" aria-label="رجوع" hidden></button>
+    <button id="btnGate" class="gate-arrow" aria-label="رجوع للبوابة"></button>
+    <button id="btnBack" class="gate-arrow" aria-label="رجوع" hidden></button>
     <h1 id="ttl">مصاريف اليوم</h1>
     <div class="acts">
       <button id="btnPrintSel" class="ib" aria-label="طباعة عدة كروت" hidden></button>
@@ -46,12 +59,14 @@
             <input id="dBal" type="number" step="1" inputmode="decimal">
           </div>
           <div>
-            <label for="dPlace">مكان العمل</label>
+            <label for="dPlace" id="lblPlace">مكان العمل</label>
             <input id="dPlace" type="text" placeholder="مثال: محكمة شمال القاهرة" autocomplete="off">
           </div>
         </div>
-        <label for="dTasks">مهام اليوم</label>
-        <textarea id="dTasks" rows="2"></textarea>
+        <div id="tasksBox">
+          <label for="dTasks">مهام اليوم</label>
+          <textarea id="dTasks" rows="2"></textarea>
+        </div>
       </div>
 
       <div class="card">
@@ -89,7 +104,7 @@
   <section id="viewSet" hidden>
     <div class="card">
       <h2>تصدير البيانات</h2>
-      <p class="note">انسخ الكود ده واحفظه في مكان أمان (رسالة لنفسك مثلاً). تقدر تستورده في أي وقت أو على جهاز تاني.</p>
+      <p class="note">الكود ده بيشمل قسمي العمل والشخصي. انسخه واحفظه في مكان أمان (رسالة لنفسك مثلاً) وتقدر تستورده في أي وقت أو على جهاز تاني.</p>
       <textarea id="expCode" rows="4" readonly dir="ltr"></textarea>
       <div class="btnrow">
         <button id="btnCopy" class="btn grow" data-ic="copy">نسخ الكود</button>
@@ -99,14 +114,22 @@
     </div>
     <div class="card">
       <h2>استيراد البيانات</h2>
-      <p class="note">الصق الكود هنا. الاستيراد بيستبدل كل البيانات الحالية.</p>
+      <p class="note">الصق الكود هنا. الاستيراد بيستبدل كل البيانات الحالية، والأكواد القديمة بتدخل قسم العمل بس.</p>
       <textarea id="impCode" rows="4" dir="ltr" placeholder="DX1:..."></textarea>
       <div class="btnrow">
         <button id="btnImport" class="btn grow" data-ic="check">استيراد</button>
         <button id="btnScan" class="btn grow" data-ic="qr">مسح QR</button>
       </div>
     </div>
-    <p class="foot">الإصدار 1.0 - البيانات محفوظة على هذا الجهاز فقط، فصدّر الكود كل فترة.</p>
+    <div class="card">
+      <h2>استيراد كروت فردية</h2>
+      <p class="note">الصق كود كارت أو أكتر. بيتضافوا على كروت القسم الحالي ومابيستبدلوش حاجة.</p>
+      <textarea id="impCards" rows="3" dir="ltr" placeholder="DC1:..."></textarea>
+      <div class="btnrow">
+        <button id="btnImpCards" class="btn grow" data-ic="plus">إضافة الكروت</button>
+      </div>
+    </div>
+    <p class="foot">الإصدار 1.2 - البيانات محفوظة على هذا الجهاز فقط، فصدّر الكود كل فترة.</p>
   </section>
 
 </div>
