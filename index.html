@@ -17,6 +17,7 @@
     <button id="btnBack" class="back" aria-label="رجوع" hidden></button>
     <h1 id="ttl">مصاريف اليوم</h1>
     <div class="acts">
+      <button id="btnPrintSel" class="ib" aria-label="طباعة عدة كروت" hidden></button>
       <button id="btnTheme" class="ib" aria-label="تبديل الوضع"></button>
       <button id="btnSet" class="ib" aria-label="الإعدادات"></button>
     </div>
@@ -92,7 +93,9 @@
       <textarea id="expCode" rows="4" readonly dir="ltr"></textarea>
       <div class="btnrow">
         <button id="btnCopy" class="btn grow" data-ic="copy">نسخ الكود</button>
+        <button id="btnQr" class="btn grow" data-ic="qr">عرض QR</button>
       </div>
+      <div id="qrBox" hidden><canvas id="qrCv"></canvas><p id="qrMsg" class="note"></p></div>
     </div>
     <div class="card">
       <h2>استيراد البيانات</h2>
@@ -100,13 +103,18 @@
       <textarea id="impCode" rows="4" dir="ltr" placeholder="DX1:..."></textarea>
       <div class="btnrow">
         <button id="btnImport" class="btn grow" data-ic="check">استيراد</button>
+        <button id="btnScan" class="btn grow" data-ic="qr">مسح QR</button>
       </div>
     </div>
     <p class="foot">الإصدار 1.0 - البيانات محفوظة على هذا الجهاز فقط، فصدّر الكود كل فترة.</p>
   </section>
 
 </div>
+<div id="scanner" hidden><div class="scbox"><video id="scVideo" playsinline muted></video><p class="note">وجّه الكاميرا ناحية الـ QR</p><button id="btnScClose" class="btn">إغلاق</button></div></div>
+<div id="printArea"></div>
 <div id="toast" role="status" aria-live="polite"></div>
+<script src="qrcode.js"></script>
+<script src="jsqr.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

@@ -19,6 +19,8 @@
     copy: '<path d="M7 9.667a2.667 2.667 0 0 1 2.667 -2.667h8.666a2.667 2.667 0 0 1 2.667 2.667v8.666a2.667 2.667 0 0 1 -2.667 2.667h-8.666a2.667 2.667 0 0 1 -2.667 -2.667l0 -8.666"/><path d="M4.012 16.737a2.005 2.005 0 0 1 -1.012 -1.737v-10c0 -1.1 .9 -2 2 -2h10c.75 0 1.158 .385 1.5 1"/>',
     cal: '<path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12z"/><path d="M16 3v4M8 3v4M4 11h16"/>'
   };
+  P.print = '<path d="M17 17h2a2 2 0 0 0 2 -2v-4a2 2 0 0 0 -2 -2h-14a2 2 0 0 0 -2 2v4a2 2 0 0 0 2 2h2"/><path d="M17 9v-4a2 2 0 0 0 -2 -2h-6a2 2 0 0 0 -2 2v4"/><path d="M7 15a2 2 0 0 1 2 -2h6a2 2 0 0 1 2 2v4a2 2 0 0 1 -2 2h-6a2 2 0 0 1 -2 -2l0 -4"/>';
+  P.qr = '<path d="M4 5a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z"/><path d="M14 5a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z"/><path d="M4 15a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z"/><path d="M7 7l0 .01M17 7l0 .01M7 17l0 .01M14 14l3 0M20 14l0 .01M14 14l0 3M14 20l3 0M17 17l3 0M20 17l0 3"/>';
   function ic(n) {
     return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + P[n] + '</svg>';
   }
@@ -27,7 +29,7 @@
   var el = {};
   ['btnBack', 'ttl', 'btnTheme', 'btnSet', 'viewMain', 'viewSet', 'p1', 'p2', 'dDateTxt', 'btnDate', 'dDateIn',
     'dBal', 'dPlace', 'dTasks', 'iAmt', 'iReason', 'btnAdd', 'btnCancelEdit', 'items', 'tot', 'btnSaveDay',
-    'cards', 'expCode', 'btnCopy', 'impCode', 'btnImport', 'toast'].forEach(function (id) { el[id] = $(id); });
+    'cards', 'expCode', 'btnCopy', 'impCode', 'btnImport', 'toast', 'btnPrintSel', 'btnQr', 'qrBox', 'qrCv', 'qrMsg', 'btnScan', 'scanner', 'scVideo', 'btnScClose', 'printArea'].forEach(function (id) { el[id] = $(id); });
 
   function p2(n) { return n < 10 ? '0' + n : '' + n; }
   function todayStr() { var d = new Date(); return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()); }
@@ -45,7 +47,7 @@
   function hasVal(v) { return v !== '' && v !== null && v !== undefined && isFinite(parseFloat(v)); }
 
   var state = { days: [], draft: null };
-  var ui = { tab: 1, open: null, edit: null, editingIdx: -1 };
+  var ui = { tab: 1, open: null, edit: null, editingIdx: -1, selMode: false, sel: {} };
 
   function newDraft() { return { date: todayStr(), balance: '', place: '', tasks: '', items: [] }; }
   function draftBlank(d) { return d.balance === '' && !d.place && !d.tasks && !d.items.length; }
@@ -251,16 +253,16 @@
       el.cards.innerHTML = '<div class="card"><div class="empty"><b>ما فيش أيام محفوظة</b>اكتب بيانات يوم في تبويب الإدخال واضغط "حفظ اليوم" هتلاقيه هنا.</div></div>';
       return;
     }
-    el.cards.innerHTML = list.map(function (d, i) { return cardHtml(d, i + 1); }).join('');
+    el.cards.innerHTML = list.map(function (d, i) { return cardHtml(d, i + 1); }).join('') + selBar();
   }
 
   function cardHtml(d, n) {
-    var open = ui.open === d.id;
+    var sm = ui.selMode, on = !!(sm && ui.sel[d.id]), open = ui.open === d.id && !sm;
     var editing = !!(ui.edit && ui.edit.id === d.id);
-    var h = '<div class="card vc' + (open ? ' open' : '') + '" data-id="' + d.id + '">';
-    h += '<div class="chead" data-act="toggle"><span class="ctl"><span class="ctitle">' + n + '- ' + esc(dayName(d.date)) + ' ' + fmtDate(d.date) + '</span>' +
+    var h = '<div class="card vc' + (open ? ' open' : '') + (on ? ' sel' : '') + '" data-id="' + d.id + '">';
+    h += '<div class="chead" data-act="' + (sm ? 'pick' : 'toggle') + '">' + (sm ? '<input type="checkbox" tabindex="-1"' + (on ? ' checked' : '') + '>' : '') + '<span class="ctl"><span class="ctitle">' + n + '- ' + esc(dayName(d.date)) + ' ' + fmtDate(d.date) + '</span>' +
       (d.place ? '<span class="cplace">' + esc(d.place) + '</span>' : '') + '</span>' +
-      '<span class="chev">' + ic(open ? 'up' : 'down') + '</span></div>';
+      (sm ? '' : '<span class="chev">' + ic(open ? 'up' : 'down') + '</span>') + '</div>';
     if (open) h += '<div class="cbody">' + (editing ? editBody(ui.edit) : viewBody(d)) + '</div>';
     return h + '</div>';
   }
@@ -280,7 +282,7 @@
     if (d.tasks) h += '<div class="tasks"><i>المهام: </i>' + esc(d.tasks) + '</div>';
     h += itemsViewHtml(d.items);
     h += '<div id="ct">' + totalsHtml(d.items, d.balance) + '</div>';
-    h += '<div class="cbtns"><button class="btn" data-act="edit">' + ic('edit') + 'تعديل</button></div>';
+    h += '<div class="cbtns"><div class="row"><button class="btn w" data-act="edit">' + ic('edit') + 'تعديل</button><button class="ib" data-act="print1" aria-label="طباعة الكارت">' + ic('print') + '</button></div></div>';
     return h;
   }
 
@@ -301,8 +303,8 @@
       '<input type="text" placeholder="سبب الصرف" data-f="nr" value="' + esc(e.nr) + '">' +
       '<span class="acts2"><button class="ib sm" data-act="additem" aria-label="إضافة بند">' + ic('plus') + '</button></span></div>';
     h += '<div id="ct">' + totalsHtml(e.items, e.balance) + '</div>';
-    h += '<div class="cbtns"><button class="btn primary" data-act="save">' + ic('check') + 'حفظ</button>' +
-      '<div class="two"><button class="btn sm" data-act="cancel">إلغاء</button><button class="btn sm dng" data-act="delcard">' + ic('trash') + 'حذف الكارت</button></div></div>';
+    h += '<div class="cbtns"><div class="row"><button class="btn primary w" data-act="save">' + ic('check') + 'حفظ</button>' +
+      '<button class="btn sm" data-act="cancel">إلغاء</button><button class="btn sm dng" data-act="delcard">' + ic('trash') + 'حذف الكارت</button></div></div>';
     return h;
   }
 
@@ -379,6 +381,21 @@
       renderCards();
     } else if (act === 'additem') {
       addEditItem(card);
+    } else if (act === 'pick') {
+      if (ui.sel[id]) delete ui.sel[id]; else ui.sel[id] = true;
+      renderCards();
+    } else if (act === 'selall') {
+      var cnt = Object.keys(ui.sel).length, all = state.days.length;
+      ui.sel = {};
+      if (cnt < all) state.days.forEach(function (x) { ui.sel[x.id] = true; });
+      renderCards();
+    } else if (act === 'selcancel') {
+      exitSel();
+    } else if (act === 'print1') {
+      var d1 = findDay(id); if (d1) printDays([d1]);
+    } else if (act === 'printsel') {
+      var arr = sorted().filter(function (x) { return ui.sel[x.id]; });
+      if (arr.length) printDays(arr);
     }
   });
 
@@ -408,35 +425,148 @@
     if (k >= 0 && k < all.length - 1) all[k + 1].focus();
   });
 
-  /* ---------- settings ---------- */
-  function b64e(s) {
-    var b = new TextEncoder().encode(s), bin = '';
-    for (var i = 0; i < b.length; i++) bin += String.fromCharCode(b[i]);
-    return btoa(bin);
+  /* ---------- select mode + printing ---------- */
+  function selBar() {
+    if (!ui.selMode) return '';
+    var n = Object.keys(ui.sel).length;
+    return '<div class="selbar"><button class="btn" data-act="selall">تحديد الكل</button>' +
+      '<button class="btn primary" data-act="printsel"' + (n ? '' : ' disabled') + '>' + ic('print') + 'طباعة (' + n + ')</button>' +
+      '<button class="btn" data-act="selcancel">إلغاء</button></div>';
   }
-  function b64d(t) {
-    var bin = atob(t), b = new Uint8Array(bin.length);
-    for (var i = 0; i < bin.length; i++) b[i] = bin.charCodeAt(i);
-    return new TextDecoder().decode(b);
+  function syncHdr() { el.btnPrintSel.hidden = !el.viewSet.hidden || ui.tab !== 2; }
+  function exitSel() { ui.selMode = false; ui.sel = {}; renderCards(); }
+  el.btnPrintSel.addEventListener('click', function () {
+    if (ui.selMode) { exitSel(); return; }
+    if (!state.days.length) { toast('ما فيش كروت للطباعة'); return; }
+    if (ui.edit) { toast('خلّص تعديل الكارت أو ألغيه الأول'); return; }
+    ui.selMode = true; ui.sel = {}; renderCards();
+  });
+
+  function printCard(d) {
+    var t = totalOf(d.items);
+    var h = '<div class="pcard"><div class="pt"><b>' + esc(dayName(d.date)) + ' ' + fmtDate(d.date) + '</b>' + (d.place ? '<span>' + esc(d.place) + '</span>' : '') + '</div>';
+    if (hasVal(d.balance)) h += '<div class="pl"><span>رصيد اليوم:</span> ' + esc(fmt(num(d.balance))) + '</div>';
+    if (d.tasks) h += '<div class="pl"><span>المهام:</span> ' + esc(d.tasks).replace(/\n/g, '<br>') + '</div>';
+    if (d.items.length) {
+      h += '<table><tr><th>م</th><th>المبلغ</th><th>سبب الصرف</th></tr>';
+      d.items.forEach(function (it, i) { h += '<tr><td>' + (i + 1) + '</td><td class="am">' + esc(fmt(num(it.amt))) + '</td><td>' + esc(it.reason) + '</td></tr>'; });
+      h += '</table>';
+    }
+    h += '<div class="pl pt2"><span>إجمالي المصاريف:</span> <b>' + esc(fmt(t)) + '</b>';
+    if (hasVal(d.balance)) h += ' &nbsp;&nbsp; <span>المتبقي من الرصيد:</span> <b>' + esc(fmt(num(d.balance) - t)) + '</b>';
+    return h + '</div></div>';
   }
-  function exportCode() { return 'DX1:' + b64e(JSON.stringify({ v: 1, days: state.days, draft: state.draft })); }
+  function printDays(list) {
+    var now = new Date(), pd = p2(now.getDate()) + '/' + p2(now.getMonth() + 1) + '/' + now.getFullYear(), h = '';
+    for (var i = 0; i < list.length; i += 2) {
+      h += '<div class="ppage"><div class="phead"><b>مصاريف اليوم</b><span>تاريخ الطباعة: ' + pd + '</span></div>';
+      for (var j = i; j < Math.min(i + 2, list.length); j++) h += printCard(list[j]);
+      h += '</div>';
+    }
+    el.printArea.innerHTML = h;
+    setTimeout(function () { window.print(); }, 60);
+  }
+
+  /* ---------- settings: export / import / QR ---------- */
+  function b64e(bytes) { var bin = ''; for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]); return btoa(bin); }
+  function b64d(t) { var bin = atob(t), b = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) b[i] = bin.charCodeAt(i); return b; }
+  function pipe(stream, data) {
+    var w = stream.writable.getWriter(); w.write(data); w.close();
+    return new Response(stream.readable).arrayBuffer().then(function (x) { return new Uint8Array(x); });
+  }
+  function exportCode() {
+    var raw = new TextEncoder().encode(JSON.stringify({ v: 1, days: state.days, draft: state.draft })), c1 = 'DX1:' + b64e(raw);
+    if (typeof CompressionStream === 'undefined') return Promise.resolve(c1);
+    return pipe(new CompressionStream('deflate'), raw).then(function (z) {
+      var c2 = 'DX2:' + b64e(z); return c2.length < c1.length ? c2 : c1;
+    }, function () { return c1; });
+  }
+  function decodeCode(raw) {
+    var p = raw.slice(0, 4), body = raw.slice(4);
+    if (p === 'DX1:') return JSON.parse(new TextDecoder().decode(b64d(body)));
+    if (p === 'DX2:' && typeof DecompressionStream !== 'undefined')
+      return pipe(new DecompressionStream('deflate'), b64d(body)).then(function (u) { return JSON.parse(new TextDecoder().decode(u)); });
+    throw new Error('bad');
+  }
+  function refreshCode() { return exportCode().then(function (c) { el.expCode.value = c; return c; }); }
 
   function showSettings(on) {
+    stopScan();
     el.viewMain.hidden = on;
     el.viewSet.hidden = !on;
     el.btnBack.hidden = !on;
     el.btnSet.hidden = on;
     el.ttl.textContent = on ? 'الإعدادات' : 'مصاريف اليوم';
-    if (on) { el.expCode.value = exportCode(); el.impCode.value = ''; }
+    el.qrBox.hidden = true;
+    syncHdr();
+    if (on) { el.expCode.value = ''; el.impCode.value = ''; refreshCode(); }
     window.scrollTo(0, 0);
   }
 
-  function importCode() {
-    var raw = el.impCode.value.replace(/\s+/g, '');
-    if (!raw) { toast('الصق الكود الأول'); return; }
-    if (raw.indexOf('DX1:') !== 0) { toast('الكود ده مش صحيح'); return; }
-    var o;
-    try { o = JSON.parse(b64d(raw.slice(4))); } catch (e) { toast('الكود ده مش صحيح أو ناقص'); return; }
+  function showQr() {
+    if (!el.qrBox.hidden) { el.qrBox.hidden = true; return; }
+    refreshCode().then(function (c) {
+      el.qrBox.hidden = false;
+      try {
+        var q = qrcode(0, 'L'); q.addData(c); q.make();
+        var n = q.getModuleCount(), cell = Math.max(3, Math.floor(900 / (n + 8))), sz = (n + 8) * cell, cv = el.qrCv;
+        cv.width = sz; cv.height = sz;
+        var g = cv.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, sz, sz); g.fillStyle = '#000';
+        for (var r = 0; r < n; r++) for (var k = 0; k < n; k++) if (q.isDark(r, k)) g.fillRect((k + 4) * cell, (r + 4) * cell, cell, cell);
+        cv.hidden = false;
+        el.qrMsg.textContent = 'اقرأه من جهاز تاني بزر "مسح QR"، أو ببرنامج QR خارجي وانسخ النص.';
+      } catch (e) {
+        el.qrCv.hidden = true;
+        el.qrMsg.textContent = 'البيانات أكبر من إن QR واحد يشيلها. استخدم "نسخ الكود".';
+      }
+    });
+  }
+
+  var scan = { stream: null, timer: null };
+  function stopScan() {
+    clearInterval(scan.timer); scan.timer = null;
+    if (scan.stream) { scan.stream.getTracks().forEach(function (t) { t.stop(); }); scan.stream = null; }
+    el.scVideo.srcObject = null;
+    el.scanner.hidden = true;
+  }
+  function onScanned(t) {
+    t = String(t || '').trim();
+    if (!/^DX[12]:/.test(t.replace(/\s+/g, ''))) { toast('الـ QR ده مش من التطبيق'); return; }
+    el.impCode.value = t;
+    importCode();
+  }
+  function startScan() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { toast('الكاميرا مش متاحة في المتصفح ده'); return; }
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false }).then(function (st) {
+      scan.stream = st;
+      el.scanner.hidden = false;
+      el.scVideo.srcObject = st;
+      var pl = el.scVideo.play(); if (pl && pl.catch) pl.catch(function () { });
+      var det = null;
+      if ('BarcodeDetector' in window) { try { det = new BarcodeDetector({ formats: ['qr_code'] }); } catch (e) { det = null; } }
+      var cv = document.createElement('canvas'), ctx = cv.getContext('2d', { willReadFrequently: true }), busy = false;
+      scan.timer = setInterval(function () {
+        var v = el.scVideo;
+        if (busy || v.readyState < 2 || !v.videoWidth) return;
+        busy = true;
+        var done = function (t) { busy = false; if (t) { stopScan(); onScanned(t); } };
+        var viaJs = function () {
+          if (!window.jsQR) return null;
+          cv.width = v.videoWidth; cv.height = v.videoHeight;
+          ctx.drawImage(v, 0, 0, cv.width, cv.height);
+          var id = ctx.getImageData(0, 0, cv.width, cv.height), c = jsQR(id.data, cv.width, cv.height, { inversionAttempts: 'dontInvert' });
+          return c ? c.data : null;
+        };
+        if (det) {
+          det.detect(v).then(function (r) { done(r && r.length ? r[0].rawValue : null); }, function () { det = null; done(null); });
+        } else {
+          try { done(viaJs()); } catch (e) { done(null); }
+        }
+      }, 300);
+    }, function () { toast('لازم تسمح بالوصول للكاميرا'); });
+  }
+
+  function applyImport(o) {
     if (!o || o.v !== 1 || !Array.isArray(o.days)) { toast('الكود ده مش صحيح'); return; }
     var days = [];
     for (var i = 0; i < o.days.length; i++) {
@@ -457,11 +587,19 @@
       place: String(dr.place || ''), tasks: String(dr.tasks || ''),
       items: dr.items.map(function (it) { return { amt: num(it.amt), reason: String(it.reason || '') }; })
     } : newDraft();
-    ui.open = null; ui.edit = null; ui.editingIdx = -1;
+    ui.open = null; ui.edit = null; ui.editingIdx = -1; ui.selMode = false; ui.sel = {};
     save(); fillDraftFields(); renderItems(); setAddBtn(); renderCards();
     el.impCode.value = '';
-    el.expCode.value = exportCode();
+    el.qrBox.hidden = true;
+    refreshCode();
     toast('تم الاستيراد: ' + days.length + ' كارت');
+  }
+
+  function importCode() {
+    var raw = el.impCode.value.replace(/\s+/g, '');
+    if (!raw) { toast('الصق الكود الأول'); return; }
+    if (!/^DX[12]:/.test(raw)) { toast('الكود ده مش صحيح'); return; }
+    Promise.resolve().then(function () { return decodeCode(raw); }).then(applyImport, function () { toast('الكود ده مش صحيح أو ناقص'); });
   }
 
   function copyCode() {
@@ -480,16 +618,24 @@
   el.btnSet.addEventListener('click', function () { showSettings(true); });
   el.btnBack.addEventListener('click', function () { showSettings(false); });
   el.btnCopy.addEventListener('click', copyCode);
+  el.btnQr.addEventListener('click', showQr);
   el.btnImport.addEventListener('click', importCode);
+  el.btnScan.addEventListener('click', startScan);
+  el.btnScClose.addEventListener('click', stopScan);
   el.btnTheme.addEventListener('click', function () {
     applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
   });
+  document.addEventListener('wheel', function (e) {
+    var t = e.target; if (t && t.type === 'number' && document.activeElement === t) t.blur();
+  }, { passive: true });
 
   /* ---------- tabs ---------- */
   function setTab(n) {
     ui.tab = n;
     el.p1.hidden = n !== 1;
     el.p2.hidden = n !== 2;
+    if (n !== 2 && ui.selMode) { ui.selMode = false; ui.sel = {}; renderCards(); }
+    syncHdr();
     var tabs = document.querySelectorAll('.tab');
     for (var i = 0; i < tabs.length; i++) tabs[i].classList.toggle('on', +tabs[i].getAttribute('data-tab') === n);
     window.scrollTo(0, 0);
@@ -507,6 +653,7 @@
   el.btnBack.innerHTML = ic('back');
   el.btnSet.innerHTML = ic('gear');
   el.btnDate.innerHTML = ic('cal');
+  el.btnPrintSel.innerHTML = ic('print');
   var icEls = document.querySelectorAll('[data-ic]');
   for (var q = 0; q < icEls.length; q++) icEls[q].insertAdjacentHTML('afterbegin', ic(icEls[q].getAttribute('data-ic')));
   initTheme();
@@ -515,6 +662,7 @@
   renderItems();
   setAddBtn();
   renderCards();
+  syncHdr();
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () { }); });
