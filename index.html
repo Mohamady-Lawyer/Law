@@ -103,22 +103,43 @@
 
   <section id="viewSet" hidden>
     <div class="card">
-      <h2>تصدير البيانات</h2>
+      <h2>تصدير عام (كل المشروع)</h2>
       <p class="note">الكود ده بيشمل قسمي العمل والشخصي. انسخه واحفظه في مكان أمان (رسالة لنفسك مثلاً) وتقدر تستورده في أي وقت أو على جهاز تاني.</p>
-      <textarea id="expCode" rows="4" readonly dir="ltr"></textarea>
+      <input id="expPrev" class="prev" type="text" readonly dir="ltr" aria-label="معاينة الكود العام">
+      <p id="expCnt" class="note"></p>
       <div class="btnrow">
-        <button id="btnCopy" class="btn grow" data-ic="copy">نسخ الكود</button>
+        <button id="btnCopy" class="btn grow" data-ic="copy">نسخ الكود العام</button>
         <button id="btnQr" class="btn grow" data-ic="qr">عرض QR</button>
       </div>
       <div id="qrBox" hidden><canvas id="qrCv"></canvas><p id="qrMsg" class="note"></p></div>
     </div>
     <div class="card">
-      <h2>استيراد البيانات</h2>
+      <h2 id="tabExpTtl">تصدير القسم الحالي فقط</h2>
+      <p id="tabExpNote" class="note">الكود ده بيشمل القسم المفتوح بس، والقسم التاني مش بيدخل فيه.</p>
+      <input id="tabPrev" class="prev" type="text" readonly dir="ltr" aria-label="معاينة كود التبويب">
+      <p id="tabCnt" class="note"></p>
+      <div class="btnrow">
+        <button id="btnCopyTab" class="btn grow" data-ic="copy"><span id="lblCopyTab">نسخ كود التبويب</span></button>
+        <button id="btnQrTab" class="btn grow" data-ic="qr">عرض QR</button>
+      </div>
+      <div id="tqrBox" hidden><canvas id="tqrCv"></canvas><p id="tqrMsg" class="note"></p></div>
+    </div>
+    <div class="card">
+      <h2>استيراد عام (كل المشروع)</h2>
       <p class="note">الصق الكود هنا. الاستيراد بيستبدل كل البيانات الحالية، والأكواد القديمة بتدخل قسم العمل بس.</p>
       <textarea id="impCode" rows="4" dir="ltr" placeholder="DX1:..."></textarea>
       <div class="btnrow">
         <button id="btnImport" class="btn grow" data-ic="check">استيراد</button>
         <button id="btnScan" class="btn grow" data-ic="qr">مسح QR</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>استيراد تبويب</h2>
+      <p class="note">الصق كود تبويب واحد (عمل أو شخصي). بيستبدل بيانات التبويب ده بس ويدخل القسم الصح تلقائياً، والقسم التاني مابيتغيرش.</p>
+      <textarea id="impTab" rows="3" dir="ltr" placeholder="DT1:..."></textarea>
+      <div class="btnrow">
+        <button id="btnImpTab" class="btn grow" data-ic="check">استيراد التبويب</button>
+        <button id="btnScanTab" class="btn grow" data-ic="qr">مسح QR</button>
       </div>
     </div>
     <div class="card">
@@ -129,7 +150,7 @@
         <button id="btnImpCards" class="btn grow" data-ic="plus">إضافة الكروت</button>
       </div>
     </div>
-    <p class="foot">الإصدار 1.2 - البيانات محفوظة على هذا الجهاز فقط، فصدّر الكود كل فترة.</p>
+    <p class="foot">الإصدار 1.3 - البيانات محفوظة على هذا الجهاز فقط، فصدّر الكود كل فترة.</p>
   </section>
 
 </div>

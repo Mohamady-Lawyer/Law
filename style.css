@@ -116,8 +116,8 @@ input[type=checkbox]{width:22px;height:22px;padding:0;accent-color:var(--ac);fle
 .selbar{position:sticky;bottom:10px;display:flex;flex-wrap:wrap;gap:8px;background:var(--card);border:1px solid var(--ac);border-radius:12px;padding:8px;z-index:5}
 .selbar .btn{flex:1 1 40%;padding:9px 6px;font-size:14px}
 .btn:disabled{opacity:.5;cursor:default}
-#qrBox{margin-top:10px;text-align:center}
-#qrCv{width:100%;max-width:320px;border-radius:10px;image-rendering:pixelated}
+#qrBox,#tqrBox{margin-top:10px;text-align:center}
+#qrCv,#tqrCv{width:100%;max-width:320px;border-radius:10px;image-rendering:pixelated}
 #scanner{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:60;display:flex;align-items:center;justify-content:center;padding:16px}
 .scbox{width:100%;max-width:420px;text-align:center;color:#fff}
 .scbox .note{color:#ccd6e2;margin:10px 0}
@@ -172,3 +172,4 @@ input[type=checkbox]{width:22px;height:22px;padding:0;accent-color:var(--ac);fle
 .gate-arrow svg{width:26px;height:26px;stroke-width:2.6}
 @media (max-width:400px){.gate-arrow{width:54px;height:36px}}
 @media print{.gate{display:none !important}}
+.prev{direction:ltr;text-align:left;font-family:ui-monospace,Consolas,monospace;font-size:15px;letter-spacing:.3px;margin-bottom:6px;cursor:default}

@@ -30,7 +30,8 @@
   var el = {};
   ['btnBack', 'ttl', 'btnTheme', 'btnSet', 'viewMain', 'viewSet', 'p1', 'p2', 'dDateTxt', 'btnDate', 'dDateIn',
     'dBal', 'dPlace', 'dTasks', 'iAmt', 'iReason', 'btnAdd', 'btnCancelEdit', 'items', 'tot', 'btnSaveDay',
-    'cards', 'expCode', 'btnCopy', 'impCode', 'btnImport', 'toast', 'btnPrintSel', 'btnQr', 'qrBox', 'qrCv', 'qrMsg', 'btnScan', 'scanner', 'scVideo', 'btnScClose', 'printArea', 'viewGate', 'app', 'btnGate', 'gateWork', 'gatePers', 'lblPlace', 'tasksBox', 'impCards', 'btnImpCards'].forEach(function (id) { el[id] = $(id); });
+    'cards', 'btnCopy', 'impCode', 'btnImport', 'toast', 'btnPrintSel', 'btnQr', 'qrBox', 'qrCv', 'qrMsg', 'btnScan', 'scanner', 'scVideo', 'btnScClose', 'printArea', 'viewGate', 'app', 'btnGate', 'gateWork', 'gatePers', 'lblPlace', 'tasksBox', 'impCards', 'btnImpCards'].forEach(function (id) { el[id] = $(id); });
+  ['expPrev', 'expCnt', 'tabExpTtl', 'tabPrev', 'tabCnt', 'btnCopyTab', 'lblCopyTab', 'btnQrTab', 'tqrBox', 'tqrCv', 'tqrMsg', 'impTab', 'btnImpTab', 'btnScanTab'].forEach(function (id) { el[id] = $(id); });
 
   function p2(n) { return n < 10 ? '0' + n : '' + n; }
   function todayStr() { var d = new Date(); return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()); }
@@ -526,7 +527,20 @@
       return pipe(new DecompressionStream('deflate'), b64d(body)).then(function (u) { return JSON.parse(new TextDecoder().decode(u)); });
     throw new Error('bad');
   }
-  function refreshCode() { return exportCode().then(function (c) { el.expCode.value = c; return c; }); }
+  function exportTabCode() { return encodeCode({ v: 1, kind: 'tab', section: sec, data: readSec(sec) }, 'DT'); }
+  var codes = { full: '', tab: '' };
+  function preview(c) { return c.length <= 24 ? c : c.slice(0, 8) + '......' + c.slice(-7); }
+  function cntTxt(c) { return 'عدد الحروف: ' + c.length.toLocaleString('en-US') + ' حرف'; }
+  function refreshCode() {
+    return Promise.all([exportCode(), exportTabCode()]).then(function (r) {
+      codes.full = r[0]; codes.tab = r[1];
+      el.expPrev.value = preview(r[0]); el.expCnt.textContent = cntTxt(r[0]);
+      el.tabPrev.value = preview(r[1]); el.tabCnt.textContent = cntTxt(r[1]);
+      el.tabExpTtl.textContent = 'تصدير ' + secTitle() + ' فقط';
+      el.lblCopyTab.textContent = 'نسخ كود ' + secTitle();
+      return r[0];
+    });
+  }
 
   function showSettings(on) {
     stopScan();
@@ -536,32 +550,35 @@
     el.btnGate.hidden = on;
     el.btnSet.hidden = on;
     el.ttl.textContent = on ? 'الإعدادات' : secTitle();
-    el.qrBox.hidden = true;
+    el.qrBox.hidden = true; el.tqrBox.hidden = true;
     syncHdr();
-    if (on) { el.expCode.value = ''; el.impCode.value = ''; el.impCards.value = ''; refreshCode(); }
+    if (on) { codes.full = ''; codes.tab = ''; el.expPrev.value = ''; el.tabPrev.value = ''; el.expCnt.textContent = ''; el.tabCnt.textContent = ''; el.impCode.value = ''; el.impTab.value = ''; el.impCards.value = ''; refreshCode(); }
     window.scrollTo(0, 0);
   }
 
-  function showQr() {
-    if (!el.qrBox.hidden) { el.qrBox.hidden = true; return; }
-    refreshCode().then(function (c) {
-      el.qrBox.hidden = false;
+  function showQr(which) {
+    var tab = which === 'tab';
+    var box = tab ? el.tqrBox : el.qrBox, cv = tab ? el.tqrCv : el.qrCv, msg = tab ? el.tqrMsg : el.qrMsg;
+    if (!box.hidden) { box.hidden = true; return; }
+    refreshCode().then(function () {
+      var c = tab ? codes.tab : codes.full;
+      box.hidden = false;
       try {
         var q = qrcode(0, 'L'); q.addData(c); q.make();
-        var n = q.getModuleCount(), cell = Math.max(3, Math.floor(900 / (n + 8))), sz = (n + 8) * cell, cv = el.qrCv;
+        var n = q.getModuleCount(), cell = Math.max(3, Math.floor(900 / (n + 8))), sz = (n + 8) * cell;
         cv.width = sz; cv.height = sz;
         var g = cv.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, sz, sz); g.fillStyle = '#000';
         for (var r = 0; r < n; r++) for (var k = 0; k < n; k++) if (q.isDark(r, k)) g.fillRect((k + 4) * cell, (r + 4) * cell, cell, cell);
         cv.hidden = false;
-        el.qrMsg.textContent = 'اقرأه من جهاز تاني بزر "مسح QR"، أو ببرنامج QR خارجي وانسخ النص.';
+        msg.textContent = tab ? 'اقرأه من جهاز تاني بزر "مسح QR" في خانة استيراد التبويب، أو ببرنامج QR خارجي وانسخ النص.' : 'اقرأه من جهاز تاني بزر "مسح QR"، أو ببرنامج QR خارجي وانسخ النص.';
       } catch (e) {
-        el.qrCv.hidden = true;
-        el.qrMsg.textContent = 'البيانات أكبر من إن QR واحد يشيلها. استخدم "نسخ الكود".';
+        cv.hidden = true;
+        msg.textContent = 'البيانات أكبر من إن QR واحد يشيلها. استخدم زر النسخ.';
       }
     });
   }
 
-  var scan = { stream: null, timer: null };
+  var scan = { stream: null, timer: null, target: 'full' };
   function stopScan() {
     clearInterval(scan.timer); scan.timer = null;
     if (scan.stream) { scan.stream.getTracks().forEach(function (t) { t.stop(); }); scan.stream = null; }
@@ -570,11 +587,13 @@
   }
   function onScanned(t) {
     t = String(t || '').trim();
-    if (!/^DX[12]:/.test(t.replace(/\s+/g, ''))) { toast('الـ QR ده مش من التطبيق'); return; }
-    el.impCode.value = t;
-    importCode();
+    var tab = scan.target === 'tab';
+    if (!(tab ? /^DT[12]:/ : /^DX[12]:/).test(t.replace(/\s+/g, ''))) { toast(tab ? 'الـ QR ده مش كود تبويب' : 'الـ QR ده مش من التطبيق'); return; }
+    if (tab) { el.impTab.value = t; importTab(); }
+    else { el.impCode.value = t; importCode(); }
   }
-  function startScan() {
+  function startScan(target) {
+    scan.target = target === 'tab' ? 'tab' : 'full';
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { toast('الكاميرا مش متاحة في المتصفح ده'); return; }
     navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false }).then(function (st) {
       scan.stream = st;
@@ -651,7 +670,7 @@
     el.iAmt.value = ''; el.iReason.value = '';
     fillDraftFields(); renderItems(); setAddBtn(); renderCards();
     el.impCode.value = '';
-    el.qrBox.hidden = true;
+    el.qrBox.hidden = true; el.tqrBox.hidden = true;
     refreshCode();
     toast('تم الاستيراد');
   }
@@ -660,6 +679,7 @@
     var raw = el.impCode.value.replace(/\s+/g, '');
     if (!raw) { toast('الصق الكود الأول'); return; }
     if (/^DC[12]:/.test(raw)) { toast('ده كود كروت فردية. استخدم خانة استيراد الكروت الفردية'); return; }
+    if (/^DT[12]:/.test(raw)) { toast('ده كود تبويب. استخدم خانة استيراد التبويب'); return; }
     if (!/^DX[12]:/.test(raw)) { toast('الكود ده مش صحيح'); return; }
     Promise.resolve().then(function () { return decodeCode(raw); }).then(applyImport, function () { toast('الكود ده مش صحيح أو ناقص'); });
   }
@@ -704,9 +724,36 @@
   function importCards() {
     var raw = el.impCards.value.replace(/\s+/g, '');
     if (!raw) { toast('الصق الكود الأول'); return; }
-    if (/^DX[12]:/.test(raw)) { toast('ده كود نسخة احتياطية كاملة. استخدم خانة الاستيراد العادية'); return; }
+    if (/^DX[12]:/.test(raw)) { toast('ده كود نسخة احتياطية كاملة. استخدم خانة الاستيراد العام'); return; }
+    if (/^DT[12]:/.test(raw)) { toast('ده كود تبويب. استخدم خانة استيراد التبويب'); return; }
     if (!/^DC[12]:/.test(raw)) { toast('الكود ده مش صحيح'); return; }
     Promise.resolve().then(function () { return decodeCode(raw); }).then(applyCards, function () { toast('الكود ده مش صحيح أو ناقص'); });
+  }
+
+  function applyTab(o) {
+    if (!o || o.kind !== 'tab' || (o.section !== 'work' && o.section !== 'personal')) { toast('الكود ده مش صحيح'); return; }
+    var s = secFrom(o.data);
+    if (!s) { toast('الكود فيه بيانات تالفة'); return; }
+    var nm = secName(o.section);
+    if (!confirm('هيتم استبدال قسم ' + nm + ' بالكامل (' + s.days.length + ' كارت) والمسودة الحالية فيه. القسم التاني مش هيتغير. تكمل؟')) return;
+    writeSec(o.section, s);
+    ui.open = null; ui.edit = null; ui.editingIdx = -1; ui.selMode = false; ui.sel = {};
+    load();
+    el.iAmt.value = ''; el.iReason.value = '';
+    fillDraftFields(); renderItems(); setAddBtn(); renderCards();
+    el.impTab.value = '';
+    el.qrBox.hidden = true; el.tqrBox.hidden = true;
+    refreshCode();
+    toast('تم استيراد قسم ' + nm);
+  }
+
+  function importTab() {
+    var raw = el.impTab.value.replace(/\s+/g, '');
+    if (!raw) { toast('الصق الكود الأول'); return; }
+    if (/^DX[12]:/.test(raw)) { toast('ده كود نسخة كاملة. استخدم خانة الاستيراد العام'); return; }
+    if (/^DC[12]:/.test(raw)) { toast('ده كود كروت فردية. استخدم خانة استيراد الكروت الفردية'); return; }
+    if (!/^DT[12]:/.test(raw)) { toast('الكود ده مش صحيح'); return; }
+    Promise.resolve().then(function () { return decodeCode(raw); }).then(applyTab, function () { toast('الكود ده مش صحيح أو ناقص'); });
   }
 
   function copyText(t, ok) {
@@ -722,14 +769,22 @@
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(function () { toast(ok); }, fb);
     else fb();
   }
-  function copyCode() { copyText(el.expCode.value, 'تم نسخ الكود'); }
+  function copyCode(which) {
+    var c = which === 'tab' ? codes.tab : codes.full;
+    if (!c) { toast('استنى لحظة وحاول تاني'); return; }
+    copyText(c, which === 'tab' ? 'تم نسخ كود ' + secTitle() : 'تم نسخ الكود العام');
+  }
 
   el.btnSet.addEventListener('click', function () { showSettings(true); });
   el.btnBack.addEventListener('click', function () { showSettings(false); });
-  el.btnCopy.addEventListener('click', copyCode);
-  el.btnQr.addEventListener('click', showQr);
+  el.btnCopy.addEventListener('click', function () { copyCode('full'); });
+  el.btnQr.addEventListener('click', function () { showQr('full'); });
+  el.btnCopyTab.addEventListener('click', function () { copyCode('tab'); });
+  el.btnQrTab.addEventListener('click', function () { showQr('tab'); });
   el.btnImport.addEventListener('click', importCode);
-  el.btnScan.addEventListener('click', startScan);
+  el.btnScan.addEventListener('click', function () { startScan('full'); });
+  el.btnImpTab.addEventListener('click', importTab);
+  el.btnScanTab.addEventListener('click', function () { startScan('tab'); });
   el.btnScClose.addEventListener('click', stopScan);
   el.btnImpCards.addEventListener('click', importCards);
   el.btnGate.addEventListener('click', showGate);
