@@ -120,6 +120,7 @@
         <button id="btnCopy" class="btn grow" data-ic="copy">نسخ الكود العام</button>
         <button id="btnQr" class="btn grow" data-ic="qr">عرض QR</button>
       </div>
+      <div class="btnrow" style="margin-top:8px"><button id="btnWaFull" class="btn grow wa" data-ic="wa">مشاركة عبر واتساب</button></div>
       <div id="qrBox" hidden><canvas id="qrCv"></canvas><p id="qrMsg" class="note"></p></div>
     </div>
     <div class="card" id="exWCard">
@@ -131,6 +132,7 @@
         <button id="btnCopyW" class="btn grow" data-ic="copy">نسخ كود مصاريف العمل</button>
         <button id="btnQrW" class="btn grow" data-ic="qr">عرض QR</button>
       </div>
+      <div class="btnrow" style="margin-top:8px"><button id="btnWaW" class="btn grow wa" data-ic="wa">مشاركة عبر واتساب</button></div>
       <div id="wqrBox" hidden><canvas id="wqrCv"></canvas><p id="wqrMsg" class="note"></p></div>
     </div>
     <div class="card" id="exPCard">
@@ -142,6 +144,7 @@
         <button id="btnCopyP" class="btn grow" data-ic="copy">نسخ كود مصاريف شخصية</button>
         <button id="btnQrP" class="btn grow" data-ic="qr">عرض QR</button>
       </div>
+      <div class="btnrow" style="margin-top:8px"><button id="btnWaP" class="btn grow wa" data-ic="wa">مشاركة عبر واتساب</button></div>
       <div id="pqrBox" hidden><canvas id="pqrCv"></canvas><p id="pqrMsg" class="note"></p></div>
     </div>
     <div class="sdiv" role="separator"></div>
@@ -155,6 +158,7 @@
         <button id="btnImport" class="btn grow" data-ic="check">استيراد</button>
         <button id="btnScan" class="btn grow" data-ic="qr">مسح QR</button>
       </div>
+      <div class="btnrow" style="margin-top:8px"><button type="button" class="btn grow" data-file="impCode" data-ic="upload">استيراد من ملف (نص أو صورة QR)</button></div>
     </div>
     <div class="card">
       <h2>استيراد تبويب</h2>
@@ -165,6 +169,7 @@
         <button id="btnImpTab" class="btn grow" data-ic="check">استيراد التبويب</button>
         <button id="btnScanTab" class="btn grow" data-ic="qr">مسح QR</button>
       </div>
+      <div class="btnrow" style="margin-top:8px"><button type="button" class="btn grow" data-file="impTab" data-ic="upload">استيراد من ملف (نص أو صورة QR)</button></div>
     </div>
     <div class="card">
       <h2>استيراد كروت فردية</h2>
@@ -174,8 +179,10 @@
       <div class="btnrow">
         <button id="btnImpCards" class="btn grow" data-ic="plus">إضافة الكروت</button>
       </div>
+      <div class="btnrow" style="margin-top:8px"><button type="button" class="btn grow" data-file="impCards" data-ic="upload">استيراد من ملف (نص أو صورة QR)</button></div>
     </div>
-    <p class="foot">الإصدار 1.4 - البيانات محفوظة على هذا الجهاز فقط، فصدّر الكود كل فترة.</p>
+    <input type="file" id="impFile" class="hid" accept=".txt,text/plain,image/*" tabindex="-1" aria-hidden="true">
+    <p class="foot">الإصدار 1.5 - البيانات محفوظة على هذا الجهاز فقط، فصدّر الكود كل فترة.</p>
   </section>
 
 </div>

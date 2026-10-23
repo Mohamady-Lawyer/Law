@@ -23,6 +23,8 @@
   P.print = '<path d="M17 17h2a2 2 0 0 0 2 -2v-4a2 2 0 0 0 -2 -2h-14a2 2 0 0 0 -2 2v4a2 2 0 0 0 2 2h2"/><path d="M17 9v-4a2 2 0 0 0 -2 -2h-6a2 2 0 0 0 -2 2v4"/><path d="M7 15a2 2 0 0 1 2 -2h6a2 2 0 0 1 2 2v4a2 2 0 0 1 -2 2h-6a2 2 0 0 1 -2 -2l0 -4"/>';
   P.qr = '<path d="M4 5a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z"/><path d="M14 5a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z"/><path d="M4 15a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z"/><path d="M7 7l0 .01M17 7l0 .01M7 17l0 .01M14 14l3 0M20 14l0 .01M14 14l0 3M14 20l3 0M17 17l3 0M20 17l0 3"/>';
   P.x = '<path d="M18 6l-12 12M6 6l12 12"/>';
+  P.wa = '<path d="M3 21l1.65 -3.8a9 9 0 1 1 3.4 2.9l-5.05 .9"/><path d="M9 10a.5 .5 0 0 0 1 0v-1a.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a.5 .5 0 0 0 0 -1h-1a.5 .5 0 0 0 0 1"/>';
+  P.upload = '<path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2"/><path d="M7 9l5 -5l5 5"/><path d="M12 4l0 12"/>';
   function ic(n) {
     return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + P[n] + '</svg>';
   }
@@ -32,7 +34,7 @@
   ['btnBack', 'ttl', 'btnTheme', 'btnSet', 'viewMain', 'viewSet', 'p1', 'p2', 'dDateTxt', 'btnDate', 'dDateIn',
     'dBal', 'dPlace', 'iAmt', 'iReason', 'btnAdd', 'btnCancelEdit', 'items', 'tot', 'btnSaveDay',
     'cards', 'btnCopy', 'impCode', 'btnImport', 'toast', 'btnPrintSel', 'btnQr', 'qrBox', 'qrCv', 'qrMsg', 'btnScan', 'scanner', 'scVideo', 'btnScClose', 'printArea', 'viewGate', 'app', 'btnGate', 'gateWork', 'gatePers', 'lblPlace', 'tasksBox', 'impCards', 'btnImpCards'].forEach(function (id) { el[id] = $(id); });
-  ['expPrev', 'expCnt', 'exWPrev', 'exWCnt', 'btnCopyW', 'btnQrW', 'wqrBox', 'wqrCv', 'wqrMsg', 'exPPrev', 'exPCnt', 'btnCopyP', 'btnQrP', 'pqrBox', 'pqrCv', 'pqrMsg', 'exWCard', 'exPCard', 'impTab', 'btnImpTab', 'btnScanTab', 'impCodeCnt', 'impTabCnt', 'impCardsCnt', 'tTxt', 'btnAddTask', 'btnCancelTask', 'tasksList', 'btnGateSet'].forEach(function (id) { el[id] = $(id); });
+  ['expPrev', 'expCnt', 'exWPrev', 'exWCnt', 'btnCopyW', 'btnQrW', 'wqrBox', 'wqrCv', 'wqrMsg', 'exPPrev', 'exPCnt', 'btnCopyP', 'btnQrP', 'pqrBox', 'pqrCv', 'pqrMsg', 'exWCard', 'exPCard', 'impTab', 'btnImpTab', 'btnScanTab', 'impCodeCnt', 'impTabCnt', 'impCardsCnt', 'tTxt', 'btnAddTask', 'btnCancelTask', 'tasksList', 'btnGateSet', 'btnWaFull', 'btnWaW', 'btnWaP', 'impFile'].forEach(function (id) { el[id] = $(id); });
 
   function p2(n) { return n < 10 ? '0' + n : '' + n; }
   function todayStr() { var d = new Date(); return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()); }
@@ -389,7 +391,7 @@
     if (sec === 'work' && d.tl && d.tl.length) h += tasksViewHtml(d.tl);
     h += itemsViewHtml(d.items);
     h += '<div id="ct">' + totalsHtml(d.items, d.balance) + '</div>';
-    h += '<div class="cbtns"><div class="row"><button class="btn w" data-act="edit">' + ic('edit') + 'تعديل</button><button class="ib" data-act="print1" aria-label="طباعة الكارت">' + ic('print') + '</button><button class="ib" data-act="copy1" aria-label="نسخ كود الكارت">' + ic('copy') + '</button></div></div>';
+    h += '<div class="cbtns"><div class="row"><button class="btn w" data-act="edit">' + ic('edit') + 'تعديل</button><button class="ib" data-act="print1" aria-label="طباعة الكارت">' + ic('print') + '</button><button class="ib" data-act="copy1" aria-label="نسخ كود الكارت">' + ic('copy') + '</button><button class="ib" data-act="wa1" aria-label="مشاركة الكارت عبر واتساب">' + ic('wa') + '</button></div></div>';
     return h;
   }
 
@@ -530,6 +532,11 @@
       if (arr2.length) exportCards(arr2);
     } else if (act === 'copy1') {
       var d2 = findDay(id); if (d2) exportCards([d2]);
+    } else if (act === 'wa1') {
+      var d3 = findDay(id); if (d3) shareCards([d3]);
+    } else if (act === 'wasel') {
+      var arr3 = sorted().filter(function (x) { return ui.sel[x.id]; });
+      if (arr3.length) shareCards(arr3);
     }
   });
 
@@ -594,6 +601,7 @@
     return '<div class="selbar"><button class="btn" data-act="selall">تحديد الكل</button>' +
       '<button class="btn primary" data-act="printsel"' + (n ? '' : ' disabled') + '>' + ic('print') + 'طباعة (' + n + ')</button>' +
       '<button class="btn" data-act="copysel"' + (n ? '' : ' disabled') + '>' + ic('copy') + 'نسخ كود</button>' +
+      '<button class="btn" data-act="wasel"' + (n ? '' : ' disabled') + '>' + ic('wa') + 'واتساب</button>' +
       '<button class="btn" data-act="selcancel">إلغاء</button></div>';
   }
   function syncHdr() { el.btnPrintSel.hidden = !el.viewSet.hidden || ui.tab !== 2; }
@@ -673,8 +681,23 @@
 
   var held = { impCode: '', impTab: '', impCards: '' };
   var impCnt = { impCode: 'impCodeCnt', impTab: 'impTabCnt', impCards: 'impCardsCnt' };
+  function extractCode(t) {
+    t = String(t || '');
+    var m = /D[XTC][12]:/.exec(t);
+    if (!m) return null;
+    var lines = t.slice(m.index).split(/\r?\n/), out = '', first = true;
+    for (var i = 0; i < lines.length; i++) {
+      var ln = lines[i].trim();
+      if (first) { ln = ln.split(/\s+/)[0]; first = false; }
+      else if (!/^[A-Za-z0-9+\/=]+$/.test(ln)) break;
+      if (!ln) break;
+      out += ln;
+      if (/=$/.test(ln)) break;
+    }
+    return /^D[XTC][12]:[A-Za-z0-9+\/=]+$/.test(out) ? out : null;
+  }
   function setImp(id, t) {
-    t = String(t || '').replace(/\s+/g, '');
+    t = extractCode(t) || String(t || '').replace(/\s+/g, '');
     held[id] = t;
     el[id].value = t ? preview(t) : '';
     el[impCnt[id]].textContent = t ? cntTxt(t) : '';
@@ -693,6 +716,95 @@
   el.viewSet.addEventListener('click', function (e) {
     var b = e.target.closest('[data-clr]');
     if (b) setImp(b.getAttribute('data-clr'), '');
+  });
+
+  /* ---------- share (WhatsApp) + import from file ---------- */
+  var WA_MAX = 2000;
+  function todayFmt() { return fmtDate(todayStr()); }
+  function downloadFile(file) {
+    var u = URL.createObjectURL(file), l = document.createElement('a');
+    l.href = u; l.download = file.name; document.body.appendChild(l); l.click(); document.body.removeChild(l);
+    setTimeout(function () { URL.revokeObjectURL(u); }, 4000);
+  }
+  function shareCode(code, label, fname) {
+    if (!code) { toast('استنى لحظة وحاول تاني'); return; }
+    var text = 'مصاريف اليوم - ' + label + ' - ' + todayFmt() + '\n' + code;
+    if (code.length <= WA_MAX) {
+      var url = 'https://wa.me/?text=' + encodeURIComponent(text);
+      var win = null;
+      try { win = window.open(url, '_blank', 'noopener'); } catch (e) { }
+      if (!win) window.location.href = url;
+      return;
+    }
+    var file;
+    try { file = new File([text + '\n'], fname + '-' + todayStr() + '.txt', { type: 'text/plain' }); }
+    catch (e) { copyText(code, 'الكود طويل. اتنسخ، الصقه في واتساب'); return; }
+    if (navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
+      navigator.share({ files: [file], title: 'مصاريف اليوم - ' + label }).catch(function (err) {
+        if (err && err.name === 'AbortError') return;
+        downloadFile(file); toast('اتحفظ الملف في التنزيلات. ارفقه في واتساب');
+      });
+    } else {
+      downloadFile(file);
+      toast('الكود طويل: اتحفظ ملف نصي في التنزيلات. ارفقه في واتساب');
+    }
+  }
+  function shareSet(which) {
+    var lbl = which === 'full' ? 'نسخة كاملة (العمل والشخصي)' : 'كود ' + titleOf(which);
+    shareCode(codes[which], lbl, 'expenses-' + which);
+  }
+  function shareCards(list) {
+    var lbl = list.length > 1 ? 'كود ' + list.length + ' كروت' : 'كود كارت ' + fmtDate(list[0].date);
+    encodeCode(cardsObj(list), 'DC').then(function (c) { shareCode(c, lbl, 'expenses-cards'); });
+  }
+
+  var fileTarget = '';
+  function qrFromImage(file, done) {
+    var img = new Image(), u = URL.createObjectURL(file);
+    img.onload = function () {
+      try {
+        var sc = Math.min(1, 2200 / Math.max(img.naturalWidth, img.naturalHeight));
+        var cv = document.createElement('canvas');
+        cv.width = Math.round(img.naturalWidth * sc); cv.height = Math.round(img.naturalHeight * sc);
+        var cx = cv.getContext('2d', { willReadFrequently: true });
+        cx.drawImage(img, 0, 0, cv.width, cv.height);
+        var id = cx.getImageData(0, 0, cv.width, cv.height);
+        var r = window.jsQR ? jsQR(id.data, cv.width, cv.height, { inversionAttempts: 'attemptBoth' }) : null;
+        done(r ? r.data : null);
+      } catch (e) { done(null); }
+      URL.revokeObjectURL(u);
+    };
+    img.onerror = function () { URL.revokeObjectURL(u); done(null); };
+    img.src = u;
+  }
+  function readTextFile(file, done) {
+    if (file.text) { file.text().then(done, function () { done(null); }); return; }
+    var fr = new FileReader();
+    fr.onload = function () { done(String(fr.result)); };
+    fr.onerror = function () { done(null); };
+    fr.readAsText(file);
+  }
+  function onFilePicked() {
+    var f = el.impFile.files && el.impFile.files[0], id = fileTarget;
+    el.impFile.value = '';
+    if (!f || !id) return;
+    if (f.size > 8 * 1024 * 1024) { toast('الملف كبير زيادة'); return; }
+    var isImg = /^image\//.test(f.type) || /\.(png|jpe?g|webp|bmp|gif)$/i.test(f.name);
+    var got = function (t) {
+      var code = t ? extractCode(t) : null;
+      if (!code) { toast(isImg ? 'ما لقيتش QR واضح في الصورة' : 'ما لقيتش كود في الملف'); return; }
+      setImp(id, code);
+      toast('تم تحميل الكود. اضغط استيراد');
+    };
+    if (isImg) qrFromImage(f, got); else readTextFile(f, got);
+  }
+  el.impFile.addEventListener('change', onFilePicked);
+  el.viewSet.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-file]');
+    if (!b) return;
+    fileTarget = b.getAttribute('data-file');
+    el.impFile.value = '';
+    el.impFile.click();
   });
 
   function showSettings(on) {
@@ -949,6 +1061,9 @@
   });
   el.btnCopy.addEventListener('click', function () { copyCode('full'); });
   el.btnQr.addEventListener('click', function () { showQr('full'); });
+  el.btnWaFull.addEventListener('click', function () { shareSet('full'); });
+  el.btnWaW.addEventListener('click', function () { shareSet('work'); });
+  el.btnWaP.addEventListener('click', function () { shareSet('personal'); });
   el.btnCopyW.addEventListener('click', function () { copyCode('work'); });
   el.btnQrW.addEventListener('click', function () { showQr('work'); });
   el.btnCopyP.addEventListener('click', function () { copyCode('personal'); });
