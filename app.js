@@ -22,6 +22,7 @@
   };
   P.print = '<path d="M17 17h2a2 2 0 0 0 2 -2v-4a2 2 0 0 0 -2 -2h-14a2 2 0 0 0 -2 2v4a2 2 0 0 0 2 2h2"/><path d="M17 9v-4a2 2 0 0 0 -2 -2h-6a2 2 0 0 0 -2 2v4"/><path d="M7 15a2 2 0 0 1 2 -2h6a2 2 0 0 1 2 2v4a2 2 0 0 1 -2 2h-6a2 2 0 0 1 -2 -2l0 -4"/>';
   P.qr = '<path d="M4 5a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z"/><path d="M14 5a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z"/><path d="M4 15a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z"/><path d="M7 7l0 .01M17 7l0 .01M7 17l0 .01M14 14l3 0M20 14l0 .01M14 14l0 3M14 20l3 0M17 17l3 0M20 17l0 3"/>';
+  P.x = '<path d="M18 6l-12 12M6 6l12 12"/>';
   function ic(n) {
     return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + P[n] + '</svg>';
   }
@@ -29,9 +30,9 @@
   function $(id) { return document.getElementById(id); }
   var el = {};
   ['btnBack', 'ttl', 'btnTheme', 'btnSet', 'viewMain', 'viewSet', 'p1', 'p2', 'dDateTxt', 'btnDate', 'dDateIn',
-    'dBal', 'dPlace', 'dTasks', 'iAmt', 'iReason', 'btnAdd', 'btnCancelEdit', 'items', 'tot', 'btnSaveDay',
+    'dBal', 'dPlace', 'iAmt', 'iReason', 'btnAdd', 'btnCancelEdit', 'items', 'tot', 'btnSaveDay',
     'cards', 'btnCopy', 'impCode', 'btnImport', 'toast', 'btnPrintSel', 'btnQr', 'qrBox', 'qrCv', 'qrMsg', 'btnScan', 'scanner', 'scVideo', 'btnScClose', 'printArea', 'viewGate', 'app', 'btnGate', 'gateWork', 'gatePers', 'lblPlace', 'tasksBox', 'impCards', 'btnImpCards'].forEach(function (id) { el[id] = $(id); });
-  ['expPrev', 'expCnt', 'tabExpTtl', 'tabPrev', 'tabCnt', 'btnCopyTab', 'lblCopyTab', 'btnQrTab', 'tqrBox', 'tqrCv', 'tqrMsg', 'impTab', 'btnImpTab', 'btnScanTab'].forEach(function (id) { el[id] = $(id); });
+  ['expPrev', 'expCnt', 'exWPrev', 'exWCnt', 'btnCopyW', 'btnQrW', 'wqrBox', 'wqrCv', 'wqrMsg', 'exPPrev', 'exPCnt', 'btnCopyP', 'btnQrP', 'pqrBox', 'pqrCv', 'pqrMsg', 'exWCard', 'exPCard', 'impTab', 'btnImpTab', 'btnScanTab', 'impCodeCnt', 'impTabCnt', 'impCardsCnt', 'tTxt', 'btnAddTask', 'btnCancelTask', 'tasksList', 'btnGateSet'].forEach(function (id) { el[id] = $(id); });
 
   function p2(n) { return n < 10 ? '0' + n : '' + n; }
   function todayStr() { var d = new Date(); return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()); }
@@ -49,11 +50,33 @@
   function hasVal(v) { return v !== '' && v !== null && v !== undefined && isFinite(parseFloat(v)); }
 
   var state = { days: [], draft: null };
-  var ui = { tab: 1, open: null, edit: null, editingIdx: -1, selMode: false, sel: {} };
+  var ui = { tab: 1, open: null, edit: null, editingIdx: -1, editingTask: -1, gateSet: false, selMode: false, sel: {} };
   var sec = 'work';
 
-  function newDraft() { return { date: todayStr(), balance: '', place: '', tasks: '', items: [] }; }
-  function draftBlank(d) { return d.balance === '' && !d.place && !d.tasks && !d.items.length; }
+  function cleanTl(a) {
+    var out = [];
+    for (var i = 0; i < a.length; i++) {
+      var t = (a[i] && a[i].t !== undefined && a[i].t !== null) ? String(a[i].t).trim() : '';
+      if (t) out.push({ t: t, s: (a[i].s === 1 || a[i].s === 2) ? a[i].s : 0 });
+    }
+    return out;
+  }
+  function linesToTl(s) {
+    return String(s || '').split('\n').map(function (x) { return x.trim(); }).filter(function (x) { return x; }).map(function (x) { return { t: x, s: 0 }; });
+  }
+  function joinTl(a) { return a.map(function (t) { return t.t; }).join('\n'); }
+  function tlFrom(x) { return Array.isArray(x.tl) ? cleanTl(x.tl) : linesToTl(x.tasks); }
+  function normT(x) {
+    if (!x) return;
+    if (typeof x.tasks !== 'string') x.tasks = '';
+    x.tl = tlFrom(x);
+  }
+  function syncTasks(x) {
+    if (x && Array.isArray(x.tl)) { var j = joinTl(x.tl); if (j !== joinTl(linesToTl(x.tasks))) x.tasks = j; }
+  }
+
+  function newDraft() { return { date: todayStr(), balance: '', place: '', tasks: '', tl: [], items: [] }; }
+  function draftBlank(d) { return d.balance === '' && !d.place && !d.tl.length && !d.items.length; }
 
   function secKey(n) { return n === 'personal' ? KEY_P : KEY; }
   function readSec(n) {
@@ -67,9 +90,10 @@
       }
     } catch (e) { }
     if (!r.draft.date) r.draft.date = todayStr();
+    r.days.forEach(normT); normT(r.draft);
     return r;
   }
-  function writeSec(n, o) { try { localStorage.setItem(secKey(n), JSON.stringify({ days: o.days, draft: o.draft })); } catch (e) { } }
+  function writeSec(n, o) { try { o.days.forEach(syncTasks); syncTasks(o.draft); localStorage.setItem(secKey(n), JSON.stringify({ days: o.days, draft: o.draft })); } catch (e) { } }
   function load() { var r = readSec(sec); state.days = r.days; state.draft = r.draft; refreshDateIfBlank(); }
   function save() { writeSec(sec, state); }
 
@@ -119,13 +143,14 @@
     el.dDateIn.value = d.date;
     el.dBal.value = d.balance;
     el.dPlace.value = d.place;
-    el.dTasks.value = d.tasks;
+    el.tTxt.value = ''; ui.editingTask = -1;
+    renderTasks(); setTaskBtn();
   }
 
   function renderItems() {
     var d = state.draft, h = '';
     if (!d.items.length) {
-      h = '<div class="empty">ما فيش مصاريف لسه. اكتب أول مبلغ فوق واضغط حفظ.</div>';
+      h = '<div class="empty">ما فيش مصاريف لسه. اكتب أول مبلغ فوق واضغط إضافة.</div>';
     } else {
       h += '<div class="rw t"><span>م</span><span>المبلغ</span><span>سبب الصرف</span><span></span></div>';
       d.items.forEach(function (it, i) {
@@ -155,7 +180,7 @@
 
   function setAddBtn() {
     var editing = ui.editingIdx >= 0;
-    el.btnAdd.innerHTML = ic(editing ? 'check' : 'plus') + (editing ? 'تحديث البند' : 'حفظ');
+    el.btnAdd.innerHTML = ic(editing ? 'check' : 'plus') + (editing ? 'تحديث البند' : 'إضافة');
     el.btnCancelEdit.hidden = !editing;
   }
 
@@ -204,14 +229,17 @@
     if (ui.editingIdx < 0 && hasVal(el.iAmt.value)) {
       if (!confirm('فيه مبلغ مكتوب ولسه ما اتحفظش كبند. تكمل حفظ اليوم من غيره؟')) return;
     }
-    if (!d.items.length && !d.place.trim() && !d.tasks.trim() && d.balance === '') {
+    if (!d.items.length && !d.place.trim() && !d.tl.length && d.balance === '') {
       toast('ما فيش بيانات تتحفظ'); return;
+    }
+    if (sec === 'work' && ui.editingTask < 0 && el.tTxt.value.trim()) {
+      if (!confirm('فيه مهمة مكتوبة ولسه ما اتضافتش. تكمل حفظ اليوم من غيرها؟')) return;
     }
     var dup = state.days.some(function (x) { return x.date === d.date; });
     if (dup && !confirm('فيه كارت محفوظ بنفس التاريخ (' + fmtDate(d.date) + '). تحفظ برضه؟')) return;
     state.days.push({
       id: Date.now(), date: d.date, balance: d.balance,
-      place: d.place.trim(), tasks: sec === 'work' ? d.tasks.trim() : '',
+      place: d.place.trim(), tasks: sec === 'work' ? joinTl(d.tl) : '', tl: sec === 'work' ? d.tl.map(function (t) { return { t: t.t, s: t.s }; }) : [],
       items: d.items.map(function (i) { return { amt: num(i.amt), reason: i.reason }; })
     });
     state.draft = newDraft();
@@ -224,7 +252,62 @@
 
   el.dBal.addEventListener('input', function () { state.draft.balance = el.dBal.value.trim(); save(); el.tot.innerHTML = totalsHtml(state.draft.items, state.draft.balance); });
   el.dPlace.addEventListener('input', function () { state.draft.place = el.dPlace.value; save(); });
-  el.dTasks.addEventListener('input', function () { state.draft.tasks = el.dTasks.value; save(); });
+  function setTaskBtn() {
+    var ed = ui.editingTask >= 0;
+    el.btnAddTask.innerHTML = ic(ed ? 'check' : 'plus') + (ed ? 'تحديث المهمة' : 'إضافة');
+    el.btnCancelTask.hidden = !ed;
+  }
+  function stBtns(i, s, act) {
+    return '<button type="button" class="st b' + (s === 1 ? ' on' : '') + '" data-act="' + act + '" data-i="' + i + '" data-v="1" aria-pressed="' + (s === 1) + '" aria-label="تمت">' + ic('check') + '</button>' +
+      '<button type="button" class="st r' + (s === 2 ? ' on' : '') + '" data-act="' + act + '" data-i="' + i + '" data-v="2" aria-pressed="' + (s === 2) + '" aria-label="لم تتم">' + ic('x') + '</button>';
+  }
+  function renderTasks() {
+    var d = state.draft, h = '';
+    if (!d.tl.length) h = '<div class="empty">ما فيش مهام لسه. اكتب أول مهمة فوق واضغط إضافة.</div>';
+    else d.tl.forEach(function (t, i) {
+      h += '<div class="tk s' + t.s + (ui.editingTask === i ? ' ed' : '') + '"><span class="n">' + (i + 1) + '</span><span class="tt">' + esc(t.t) + '</span><span class="tacts">' + stBtns(i, t.s, 'tst') +
+        '<button class="ib sm" data-act="ted" data-i="' + i + '" aria-label="تعديل المهمة">' + ic('edit') + '</button>' +
+        '<button class="ib sm" data-act="tdel" data-i="' + i + '" aria-label="حذف المهمة">' + ic('trash') + '</button></span></div>';
+    });
+    el.tasksList.innerHTML = h;
+  }
+  function addTask() {
+    var t = el.tTxt.value.trim();
+    if (!t) { toast('اكتب المهمة الأول'); el.tTxt.focus(); return; }
+    if (ui.editingTask >= 0) { state.draft.tl[ui.editingTask].t = t; ui.editingTask = -1; }
+    else state.draft.tl.push({ t: t, s: 0 });
+    el.tTxt.value = '';
+    save(); renderTasks(); setTaskBtn();
+    el.tTxt.focus();
+  }
+  function cancelTaskEdit() {
+    ui.editingTask = -1; el.tTxt.value = '';
+    renderTasks(); setTaskBtn();
+  }
+  el.tasksList.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-act]');
+    if (!b) return;
+    var i = +b.getAttribute('data-i'), a = b.getAttribute('data-act'), tl = state.draft.tl;
+    if (a === 'tst') {
+      var v = +b.getAttribute('data-v');
+      tl[i].s = tl[i].s === v ? 0 : v;
+      save(); renderTasks();
+    } else if (a === 'tdel') {
+      if (!confirm('حذف المهمة رقم ' + (i + 1) + '؟')) return;
+      tl.splice(i, 1);
+      if (ui.editingTask === i) { ui.editingTask = -1; el.tTxt.value = ''; }
+      else if (ui.editingTask > i) ui.editingTask--;
+      save(); renderTasks(); setTaskBtn();
+    } else if (a === 'ted') {
+      ui.editingTask = i;
+      el.tTxt.value = tl[i].t;
+      renderTasks(); setTaskBtn();
+      el.tTxt.focus();
+      el.tTxt.scrollIntoView({ block: 'center' });
+    }
+  });
+  el.btnAddTask.addEventListener('click', addTask);
+  el.btnCancelTask.addEventListener('click', cancelTaskEdit);
   el.btnDate.addEventListener('click', function () {
     try { el.dDateIn.showPicker(); } catch (e) { el.dDateIn.focus(); el.dDateIn.click(); }
   });
@@ -247,8 +330,8 @@
     });
   }
   enterTo(el.dBal, el.dPlace);
-  enterTo(el.dPlace, function () { (sec === 'work' ? el.dTasks : el.iAmt).focus(); });
-  enterTo(el.dTasks, el.iAmt);
+  enterTo(el.dPlace, function () { (sec === 'work' ? el.tTxt : el.iAmt).focus(); });
+  enterTo(el.tTxt, addTask);
   enterTo(el.iAmt, el.iReason);
   enterTo(el.iReason, addItem);
 
@@ -282,10 +365,28 @@
     return h;
   }
 
+  function tasksViewHtml(tl) {
+    var h = '<div class="tkh">مهام اليوم</div>';
+    tl.forEach(function (t, i) {
+      h += '<div class="tk v s' + t.s + '"><span class="n">' + (i + 1) + '</span><span class="tt">' + esc(t.t) + '</span><span class="tacts">' +
+        (t.s ? '<span class="st badge ' + (t.s === 1 ? 'b' : 'r') + ' on">' + ic(t.s === 1 ? 'check' : 'x') + '</span>' : '') + '</span></div>';
+    });
+    return '<div class="tkl">' + h + '</div>';
+  }
+  function tasksEditHtml(e) {
+    var h = '<div class="tkl"><div class="tkh">مهام اليوم</div>';
+    e.tl.forEach(function (t, i) {
+      h += '<div class="tk s' + t.s + '"><span class="n">' + (i + 1) + '</span><input type="text" data-f="tt" data-i="' + i + '" value="' + esc(t.t) + '"><span class="tacts">' + stBtns(i, t.s, 'etst') +
+        '<button class="ib sm" data-act="etdel" data-i="' + i + '" aria-label="حذف المهمة">' + ic('trash') + '</button></span></div>';
+    });
+    h += '<div class="tk nt"><span class="n">+</span><input type="text" placeholder="مهمة جديدة" data-f="nt" value="' + esc(e.nt) + '"><span class="tacts"><button class="ib sm" data-act="addtask" aria-label="إضافة مهمة">' + ic('plus') + '</button></span></div></div>';
+    return h;
+  }
+
   function viewBody(d) {
     var h = '';
     if (hasVal(d.balance)) h += '<div class="line"><span>رصيد اليوم</span><span>' + esc(fmt(num(d.balance))) + '</span></div>';
-    if (d.tasks && sec === 'work') h += '<div class="tasks"><i>المهام: </i>' + esc(d.tasks) + '</div>';
+    if (sec === 'work' && d.tl && d.tl.length) h += tasksViewHtml(d.tl);
     h += itemsViewHtml(d.items);
     h += '<div id="ct">' + totalsHtml(d.items, d.balance) + '</div>';
     h += '<div class="cbtns"><div class="row"><button class="btn w" data-act="edit">' + ic('edit') + 'تعديل</button><button class="ib" data-act="print1" aria-label="طباعة الكارت">' + ic('print') + '</button><button class="ib" data-act="copy1" aria-label="نسخ كود الكارت">' + ic('copy') + '</button></div></div>';
@@ -296,7 +397,7 @@
     var h = '<div class="grid2"><div><label>التاريخ</label><input type="date" data-f="date" value="' + esc(e.date) + '"></div>' +
       '<div><label>رصيد اليوم</label><input type="number" step="1" inputmode="decimal" data-f="balance" value="' + esc(e.balance) + '"></div></div>';
     h += '<label>' + placeLbl() + '</label><input type="text" data-f="place" value="' + esc(e.place) + '" style="margin-bottom:' + (sec === 'work' ? '8' : '10') + 'px">';
-    if (sec === 'work') h += '<label>مهام اليوم</label><textarea rows="2" data-f="tasks" style="margin-bottom:10px">' + esc(e.tasks) + '</textarea>';
+    if (sec === 'work') h += tasksEditHtml(e);
     if (e.items.length) h += '<div class="rw t"><span>م</span><span>المبلغ</span><span>سبب الصرف</span><span></span></div>';
     e.items.forEach(function (it, i) {
       h += '<div class="rw"><span class="n">' + (i + 1) + '</span>' +
@@ -318,7 +419,7 @@
 
   function startEdit(d) {
     ui.edit = {
-      id: d.id, date: d.date, balance: d.balance, place: d.place, tasks: d.tasks, na: '', nr: '',
+      id: d.id, date: d.date, balance: d.balance, place: d.place, tl: (d.tl || []).map(function (t) { return { t: t.t, s: t.s }; }), nt: '', na: '', nr: '',
       items: d.items.map(function (i) { return { amt: String(i.amt), reason: i.reason }; })
     };
   }
@@ -330,6 +431,15 @@
     e.na = ''; e.nr = '';
     renderCards();
     focusIn(document.querySelector('.vc[data-id="' + e.id + '"]'), 'na');
+    return true;
+  }
+
+  function addEditTask(card) {
+    var e = ui.edit, t = (e.nt || '').trim();
+    if (!t) { toast('اكتب المهمة الأول'); focusIn(card, 'nt'); return false; }
+    e.tl.push({ t: t, s: 0 }); e.nt = '';
+    renderCards();
+    focusIn(document.querySelector('.vc[data-id="' + e.id + '"]'), 'nt');
     return true;
   }
 
@@ -346,10 +456,12 @@
     if (hasVal(e.na)) {
       if (!confirm('فيه مبلغ مكتوب ولسه ما اتضافش كبند. تكمل الحفظ من غيره؟')) return;
     }
+    if ((e.nt || '').trim() && !confirm('فيه مهمة مكتوبة ولسه ما اتضافتش. تكمل الحفظ من غيرها؟')) return;
     d.date = e.date;
     d.balance = (e.balance === null || e.balance === undefined) ? '' : String(e.balance).trim();
     d.place = e.place.trim();
-    d.tasks = e.tasks.trim();
+    d.tl = e.tl.map(function (t) { return { t: t.t.trim(), s: t.s }; }).filter(function (t) { return t.t; });
+    d.tasks = joinTl(d.tl);
     d.items = e.items.map(function (i) { return { amt: num(i.amt), reason: i.reason.trim() }; });
     ui.edit = null;
     save(); renderCards();
@@ -387,6 +499,17 @@
       renderCards();
     } else if (act === 'additem') {
       addEditItem(card);
+    } else if (act === 'etst') {
+      var ti = +b.getAttribute('data-i'), tv = +b.getAttribute('data-v'), tk = ui.edit.tl[ti];
+      tk.s = tk.s === tv ? 0 : tv;
+      renderCards();
+    } else if (act === 'etdel') {
+      var ei = +b.getAttribute('data-i');
+      if (!confirm('حذف المهمة رقم ' + (ei + 1) + '؟')) return;
+      ui.edit.tl.splice(ei, 1);
+      renderCards();
+    } else if (act === 'addtask') {
+      addEditTask(card);
     } else if (act === 'pick') {
       if (ui.sel[id]) delete ui.sel[id]; else ui.sel[id] = true;
       renderCards();
@@ -416,6 +539,7 @@
     var e = ui.edit, i = +t.getAttribute('data-i');
     if (f === 'ia') e.items[i].amt = t.value;
     else if (f === 'ir') e.items[i].reason = t.value;
+    else if (f === 'tt') e.tl[i].t = t.value;
     else e[f] = t.value;
     if (f === 'ia' || f === 'balance') {
       var ct = el.cards.querySelector('.vc[data-id="' + e.id + '"] #ct');
@@ -431,6 +555,7 @@
     ev.preventDefault();
     var card = t.closest('.vc');
     if (f === 'nr') { addEditItem(card); return; }
+    if (f === 'nt') { addEditTask(card); return; }
     var all = Array.prototype.slice.call(card.querySelectorAll('input[data-f],textarea[data-f]'));
     var k = all.indexOf(t);
     if (k >= 0 && k < all.length - 1) all[k + 1].focus();
@@ -484,7 +609,11 @@
     var t = totalOf(d.items);
     var h = '<div class="pcard"><div class="pt"><b>' + esc(dayName(d.date)) + ' ' + fmtDate(d.date) + '</b>' + (d.place ? '<span>' + esc(d.place) + '</span>' : '') + '</div>';
     if (hasVal(d.balance)) h += '<div class="pl"><span>رصيد اليوم:</span> ' + esc(fmt(num(d.balance))) + '</div>';
-    if (d.tasks && sec === 'work') h += '<div class="pl"><span>المهام:</span> ' + esc(d.tasks).replace(/\n/g, '<br>') + '</div>';
+    if (sec === 'work' && d.tl && d.tl.length) {
+      h += '<div class="pl"><span>المهام:</span>';
+      d.tl.forEach(function (t) { h += '<div class="pk"><b>' + (t.s === 1 ? '✓' : t.s === 2 ? '✗' : '○') + '</b> ' + esc(t.t) + '</div>'; });
+      h += '</div>';
+    }
     if (d.items.length) {
       h += '<table><tr><th>م</th><th>المبلغ</th><th>سبب الصرف</th></tr>';
       d.items.forEach(function (it, i) { h += '<tr><td>' + (i + 1) + '</td><td class="am">' + esc(fmt(num(it.amt))) + '</td><td>' + esc(it.reason) + '</td></tr>'; });
@@ -527,20 +656,44 @@
       return pipe(new DecompressionStream('deflate'), b64d(body)).then(function (u) { return JSON.parse(new TextDecoder().decode(u)); });
     throw new Error('bad');
   }
-  function exportTabCode() { return encodeCode({ v: 1, kind: 'tab', section: sec, data: readSec(sec) }, 'DT'); }
-  var codes = { full: '', tab: '' };
+  function titleOf(n) { return n === 'personal' ? 'مصاريف شخصية' : 'مصاريف العمل'; }
+  function exportTabCode(n) { return encodeCode({ v: 1, kind: 'tab', section: n, data: readSec(n) }, 'DT'); }
+  var codes = { full: '', work: '', personal: '' };
   function preview(c) { return c.length <= 24 ? c : c.slice(0, 8) + '......' + c.slice(-7); }
   function cntTxt(c) { return 'عدد الحروف: ' + c.length.toLocaleString('en-US') + ' حرف'; }
   function refreshCode() {
-    return Promise.all([exportCode(), exportTabCode()]).then(function (r) {
-      codes.full = r[0]; codes.tab = r[1];
+    return Promise.all([exportCode(), exportTabCode('work'), exportTabCode('personal')]).then(function (r) {
+      codes.full = r[0]; codes.work = r[1]; codes.personal = r[2];
       el.expPrev.value = preview(r[0]); el.expCnt.textContent = cntTxt(r[0]);
-      el.tabPrev.value = preview(r[1]); el.tabCnt.textContent = cntTxt(r[1]);
-      el.tabExpTtl.textContent = 'تصدير ' + secTitle() + ' فقط';
-      el.lblCopyTab.textContent = 'نسخ كود ' + secTitle();
+      el.exWPrev.value = preview(r[1]); el.exWCnt.textContent = cntTxt(r[1]);
+      el.exPPrev.value = preview(r[2]); el.exPCnt.textContent = cntTxt(r[2]);
       return r[0];
     });
   }
+
+  var held = { impCode: '', impTab: '', impCards: '' };
+  var impCnt = { impCode: 'impCodeCnt', impTab: 'impTabCnt', impCards: 'impCardsCnt' };
+  function setImp(id, t) {
+    t = String(t || '').replace(/\s+/g, '');
+    held[id] = t;
+    el[id].value = t ? preview(t) : '';
+    el[impCnt[id]].textContent = t ? cntTxt(t) : '';
+  }
+  ['impCode', 'impTab', 'impCards'].forEach(function (id) {
+    var inp = el[id];
+    inp.addEventListener('paste', function (e) {
+      var cd = e.clipboardData || window.clipboardData, t = cd ? cd.getData('text') : '';
+      if (t) { e.preventDefault(); setImp(id, t); }
+    });
+    inp.addEventListener('input', function () {
+      if (held[id] && inp.value === preview(held[id])) return;
+      setImp(id, inp.value);
+    });
+  });
+  el.viewSet.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-clr]');
+    if (b) setImp(b.getAttribute('data-clr'), '');
+  });
 
   function showSettings(on) {
     stopScan();
@@ -550,18 +703,26 @@
     el.btnGate.hidden = on;
     el.btnSet.hidden = on;
     el.ttl.textContent = on ? 'الإعدادات' : secTitle();
-    el.qrBox.hidden = true; el.tqrBox.hidden = true;
+    el.qrBox.hidden = true; el.wqrBox.hidden = true; el.pqrBox.hidden = true;
     syncHdr();
-    if (on) { codes.full = ''; codes.tab = ''; el.expPrev.value = ''; el.tabPrev.value = ''; el.expCnt.textContent = ''; el.tabCnt.textContent = ''; el.impCode.value = ''; el.impTab.value = ''; el.impCards.value = ''; refreshCode(); }
+    if (on) {
+      el.exWCard.hidden = !(ui.gateSet || sec === 'work');
+      el.exPCard.hidden = !(ui.gateSet || sec === 'personal');
+      codes.full = ''; codes.work = ''; codes.personal = '';
+      el.expPrev.value = ''; el.exWPrev.value = ''; el.exPPrev.value = '';
+      el.expCnt.textContent = ''; el.exWCnt.textContent = ''; el.exPCnt.textContent = '';
+      setImp('impCode', ''); setImp('impTab', ''); setImp('impCards', '');
+      refreshCode();
+    } else ui.gateSet = false;
     window.scrollTo(0, 0);
   }
 
   function showQr(which) {
-    var tab = which === 'tab';
-    var box = tab ? el.tqrBox : el.qrBox, cv = tab ? el.tqrCv : el.qrCv, msg = tab ? el.tqrMsg : el.qrMsg;
+    var m = { full: [el.qrBox, el.qrCv, el.qrMsg], work: [el.wqrBox, el.wqrCv, el.wqrMsg], personal: [el.pqrBox, el.pqrCv, el.pqrMsg] }[which];
+    var box = m[0], cv = m[1], msg = m[2];
     if (!box.hidden) { box.hidden = true; return; }
     refreshCode().then(function () {
-      var c = tab ? codes.tab : codes.full;
+      var c = codes[which];
       box.hidden = false;
       try {
         var q = qrcode(0, 'L'); q.addData(c); q.make();
@@ -570,7 +731,7 @@
         var g = cv.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, sz, sz); g.fillStyle = '#000';
         for (var r = 0; r < n; r++) for (var k = 0; k < n; k++) if (q.isDark(r, k)) g.fillRect((k + 4) * cell, (r + 4) * cell, cell, cell);
         cv.hidden = false;
-        msg.textContent = tab ? 'اقرأه من جهاز تاني بزر "مسح QR" في خانة استيراد التبويب، أو ببرنامج QR خارجي وانسخ النص.' : 'اقرأه من جهاز تاني بزر "مسح QR"، أو ببرنامج QR خارجي وانسخ النص.';
+        msg.textContent = which === 'full' ? 'اقرأه من جهاز تاني بزر "مسح QR"، أو ببرنامج QR خارجي وانسخ النص.' : 'اقرأه من جهاز تاني بزر "مسح QR" في خانة استيراد التبويب، أو ببرنامج QR خارجي وانسخ النص.';
       } catch (e) {
         cv.hidden = true;
         msg.textContent = 'البيانات أكبر من إن QR واحد يشيلها. استخدم زر النسخ.';
@@ -589,8 +750,8 @@
     t = String(t || '').trim();
     var tab = scan.target === 'tab';
     if (!(tab ? /^DT[12]:/ : /^DX[12]:/).test(t.replace(/\s+/g, ''))) { toast(tab ? 'الـ QR ده مش كود تبويب' : 'الـ QR ده مش من التطبيق'); return; }
-    if (tab) { el.impTab.value = t; importTab(); }
-    else { el.impCode.value = t; importCode(); }
+    if (tab) { setImp('impTab', t); importTab(); }
+    else { setImp('impCode', t); importCode(); }
   }
   function startScan(target) {
     scan.target = target === 'tab' ? 'tab' : 'full';
@@ -632,7 +793,7 @@
       out.push({
         id: x.id || (Date.now() + i), date: x.date,
         balance: (x.balance === null || x.balance === undefined) ? '' : String(x.balance),
-        place: String(x.place || ''), tasks: String(x.tasks || ''),
+        place: String(x.place || ''), tasks: String(x.tasks || ''), tl: tlFrom(x),
         items: x.items.map(function (it) { return { amt: num(it.amt), reason: String(it.reason || '') }; })
       });
     }
@@ -641,7 +802,7 @@
   function cleanDraft(dr) {
     return (dr && Array.isArray(dr.items) && /^\d{4}-\d{2}-\d{2}$/.test(String(dr.date))) ? {
       date: dr.date, balance: dr.balance === undefined || dr.balance === null ? '' : String(dr.balance),
-      place: String(dr.place || ''), tasks: String(dr.tasks || ''),
+      place: String(dr.place || ''), tasks: String(dr.tasks || ''), tl: tlFrom(dr),
       items: dr.items.map(function (it) { return { amt: num(it.amt), reason: String(it.reason || '') }; })
     } : newDraft();
   }
@@ -669,14 +830,14 @@
     load();
     el.iAmt.value = ''; el.iReason.value = '';
     fillDraftFields(); renderItems(); setAddBtn(); renderCards();
-    el.impCode.value = '';
-    el.qrBox.hidden = true; el.tqrBox.hidden = true;
+    setImp('impCode', '');
+    el.qrBox.hidden = true; el.wqrBox.hidden = true; el.pqrBox.hidden = true;
     refreshCode();
     toast('تم الاستيراد');
   }
 
   function importCode() {
-    var raw = el.impCode.value.replace(/\s+/g, '');
+    var raw = held.impCode;
     if (!raw) { toast('الصق الكود الأول'); return; }
     if (/^DC[12]:/.test(raw)) { toast('ده كود كروت فردية. استخدم خانة استيراد الكروت الفردية'); return; }
     if (/^DT[12]:/.test(raw)) { toast('ده كود تبويب. استخدم خانة استيراد التبويب'); return; }
@@ -687,7 +848,7 @@
   function cardsObj(list) {
     return {
       v: 1, kind: 'cards', section: sec,
-      cards: list.map(function (d) { return { id: d.id, date: d.date, balance: d.balance, place: d.place, tasks: d.tasks, items: d.items }; })
+      cards: list.map(function (d) { return { id: d.id, date: d.date, balance: d.balance, place: d.place, tasks: d.tasks, tl: d.tl, items: d.items }; })
     };
   }
   function exportCards(list) {
@@ -700,29 +861,33 @@
     if (!o || o.kind !== 'cards' || !Array.isArray(o.cards) || !o.cards.length) { toast('الكود ده مش صحيح'); return; }
     var list = cleanDays(o.cards);
     if (!list) { toast('الكود فيه بيانات تالفة'); return; }
-    var dup = list.filter(function (c) { return findDay(c.id); }).length;
-    var sameDate = list.filter(function (c) { return !findDay(c.id) && state.days.some(function (x) { return x.date === c.date; }); }).length;
-    var msg = 'هتضيف ' + list.length + ' كارت على كروت ' + secName() + ':\n' +
+    var tgt = ui.gateSet ? (o.section === 'personal' ? 'personal' : 'work') : sec;
+    var s = tgt === sec ? state : readSec(tgt);
+    function has(id) { for (var i = 0; i < s.days.length; i++) if (s.days[i].id === id) return s.days[i]; return null; }
+    var dup = list.filter(function (c) { return has(c.id); }).length;
+    var sameDate = list.filter(function (c) { return !has(c.id) && s.days.some(function (x) { return x.date === c.date; }); }).length;
+    var msg = 'هتضيف ' + list.length + ' كارت على كروت ' + secName(tgt) + ':\n' +
       list.slice(0, 3).map(function (c) { return '- ' + dayName(c.date) + ' ' + fmtDate(c.date) + (c.place ? ' (' + c.place + ')' : ''); }).join('\n') +
       (list.length > 3 ? '\n...' : '');
-    if (o.section && o.section !== sec) msg += '\n\nالكروت دي من قسم ' + secName(o.section) + '.';
+    if (!ui.gateSet && o.section && o.section !== sec) msg += '\n\nالكروت دي من قسم ' + secName(o.section) + '.';
     if (sameDate) msg += '\n\nفيه ' + sameDate + ' منهم بنفس تاريخ كروت عندك وهيتضافوا برضه.';
     if (!confirm(msg + '\n\nتكمل؟')) return;
     var replace = dup > 0 && confirm(dup + ' كارت موجود عندك بالفعل. موافق = استبدالهم بالجديد، إلغاء = تجاهلهم.');
     var added = 0, rep = 0;
     list.forEach(function (c) {
-      var ex = findDay(c.id);
-      if (ex) { if (replace) { state.days[state.days.indexOf(ex)] = c; rep++; } }
-      else { state.days.push(c); added++; }
+      var ex = has(c.id);
+      if (ex) { if (replace) { s.days[s.days.indexOf(ex)] = c; rep++; } }
+      else { s.days.push(c); added++; }
     });
-    save(); renderCards();
-    el.impCards.value = '';
+    if (tgt === sec) save(); else writeSec(tgt, s);
+    renderCards();
+    setImp('impCards', '');
     refreshCode();
     toast('اتضاف ' + added + (rep ? ' واتستبدل ' + rep : '') + ' كارت');
   }
 
   function importCards() {
-    var raw = el.impCards.value.replace(/\s+/g, '');
+    var raw = held.impCards;
     if (!raw) { toast('الصق الكود الأول'); return; }
     if (/^DX[12]:/.test(raw)) { toast('ده كود نسخة احتياطية كاملة. استخدم خانة الاستيراد العام'); return; }
     if (/^DT[12]:/.test(raw)) { toast('ده كود تبويب. استخدم خانة استيراد التبويب'); return; }
@@ -741,14 +906,14 @@
     load();
     el.iAmt.value = ''; el.iReason.value = '';
     fillDraftFields(); renderItems(); setAddBtn(); renderCards();
-    el.impTab.value = '';
-    el.qrBox.hidden = true; el.tqrBox.hidden = true;
+    setImp('impTab', '');
+    el.qrBox.hidden = true; el.wqrBox.hidden = true; el.pqrBox.hidden = true;
     refreshCode();
     toast('تم استيراد قسم ' + nm);
   }
 
   function importTab() {
-    var raw = el.impTab.value.replace(/\s+/g, '');
+    var raw = held.impTab;
     if (!raw) { toast('الصق الكود الأول'); return; }
     if (/^DX[12]:/.test(raw)) { toast('ده كود نسخة كاملة. استخدم خانة الاستيراد العام'); return; }
     if (/^DC[12]:/.test(raw)) { toast('ده كود كروت فردية. استخدم خانة استيراد الكروت الفردية'); return; }
@@ -770,17 +935,24 @@
     else fb();
   }
   function copyCode(which) {
-    var c = which === 'tab' ? codes.tab : codes.full;
+    var c = codes[which];
     if (!c) { toast('استنى لحظة وحاول تاني'); return; }
-    copyText(c, which === 'tab' ? 'تم نسخ كود ' + secTitle() : 'تم نسخ الكود العام');
+    copyText(c, which === 'full' ? 'تم نسخ الكود العام' : 'تم نسخ كود ' + titleOf(which));
   }
 
-  el.btnSet.addEventListener('click', function () { showSettings(true); });
-  el.btnBack.addEventListener('click', function () { showSettings(false); });
+  el.btnSet.addEventListener('click', function () { ui.gateSet = false; showSettings(true); });
+  el.btnBack.addEventListener('click', function () { var g = ui.gateSet; showSettings(false); if (g) showGate(); });
+  el.btnGateSet.addEventListener('click', function () {
+    ui.gateSet = true;
+    el.viewGate.hidden = true; el.app.hidden = false;
+    showSettings(true);
+  });
   el.btnCopy.addEventListener('click', function () { copyCode('full'); });
   el.btnQr.addEventListener('click', function () { showQr('full'); });
-  el.btnCopyTab.addEventListener('click', function () { copyCode('tab'); });
-  el.btnQrTab.addEventListener('click', function () { showQr('tab'); });
+  el.btnCopyW.addEventListener('click', function () { copyCode('work'); });
+  el.btnQrW.addEventListener('click', function () { showQr('work'); });
+  el.btnCopyP.addEventListener('click', function () { copyCode('personal'); });
+  el.btnQrP.addEventListener('click', function () { showQr('personal'); });
   el.btnImport.addEventListener('click', importCode);
   el.btnScan.addEventListener('click', function () { startScan('full'); });
   el.btnImpTab.addEventListener('click', importTab);

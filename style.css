@@ -173,3 +173,31 @@ input[type=checkbox]{width:22px;height:22px;padding:0;accent-color:var(--ac);fle
 @media (max-width:400px){.gate-arrow{width:54px;height:36px}}
 @media print{.gate{display:none !important}}
 .prev{direction:ltr;text-align:left;font-family:ui-monospace,Consolas,monospace;font-size:15px;letter-spacing:.3px;margin-bottom:6px;cursor:default}
+:root{--ok:#4aa8ff;--no:#ff6b6b}
+[data-theme="light"]{--ok:#2a7fd4;--no:#d33a3a}
+.sh{margin:6px 0 12px;text-align:center;font-size:18px;font-weight:700;color:var(--tx)}
+.sdiv{height:2px;margin:22px 0 14px;border-radius:2px;background:linear-gradient(90deg,transparent,var(--ac),transparent);opacity:.55}
+.impwrap{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.impwrap .prev{flex:1;min-width:0;margin-bottom:0}
+.gate>.gate-set{position:absolute;top:max(14px,env(safe-area-inset-top));left:14px;z-index:2}
+#tasksList{margin-top:10px}
+.tkl{margin:0 0 10px}
+.tkh{font-size:12px;color:var(--mut);margin:0 0 4px}
+.tk{display:grid;grid-template-columns:26px 1fr auto;gap:8px;align-items:center;padding:7px 0;border-top:1px solid var(--bd);font-size:15px}
+.tk.ed{background:var(--acbg);border-radius:8px}
+.tk .n{color:var(--mut);font-size:14px}
+.tk .tt{overflow-wrap:anywhere}
+.tk.s1 .tt{color:var(--ok)}
+.tk.s2 .tt{color:var(--no)}
+.tk .tacts{display:flex;gap:6px;align-items:center;justify-content:flex-end}
+.tk input{padding:7px 8px;font-size:15px}
+.st{width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;padding:0;cursor:pointer;background:transparent;border:2px solid var(--bd);color:var(--mut);font:inherit}
+.st svg{width:16px;height:16px;stroke-width:3}
+.st.b{border-color:var(--ok);color:var(--ok);opacity:.55}
+.st.r{border-color:var(--no);color:var(--no);opacity:.55}
+.st:hover{opacity:1}
+.st.b.on{background:var(--ok);color:#fff;opacity:1}
+.st.r.on{background:var(--no);color:#fff;opacity:1}
+.st.badge{width:24px;height:24px;cursor:default;opacity:1}
+.st.badge svg{width:13px;height:13px}
+@media print{.pk{margin:2px 0 0;padding-right:12px}}

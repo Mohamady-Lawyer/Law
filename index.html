@@ -12,6 +12,7 @@
 </head>
 <body>
 <div id="viewGate" class="gate">
+  <button id="btnGateSet" class="ib gate-set" data-ic="gear" aria-label="الإعدادات"></button>
   <div class="gate-hero">
     <div class="gate-logo"><div class="gate-logo-plate"><img src="icons/icon-192.png" alt=""></div></div>
     <h1 class="gate-title">مصاريف اليوم</h1>
@@ -63,10 +64,17 @@
             <input id="dPlace" type="text" placeholder="مثال: محكمة شمال القاهرة" autocomplete="off">
           </div>
         </div>
-        <div id="tasksBox">
-          <label for="dTasks">مهام اليوم</label>
-          <textarea id="dTasks" rows="2"></textarea>
+      </div>
+
+      <div class="card" id="tasksBox">
+        <h2>مهام اليوم</h2>
+        <label for="tTxt">المهمة</label>
+        <input id="tTxt" type="text" placeholder="مثال: تقديم صحيفة دعوى" autocomplete="off">
+        <div class="btnrow" style="margin-top:10px">
+          <button id="btnAddTask" class="btn grow" data-ic="plus">إضافة</button>
+          <button id="btnCancelTask" class="btn" hidden>إلغاء التعديل</button>
         </div>
+        <div id="tasksList"></div>
       </div>
 
       <div class="card">
@@ -82,7 +90,7 @@
           </div>
         </div>
         <div class="btnrow">
-          <button id="btnAdd" class="btn grow" data-ic="plus">حفظ</button>
+          <button id="btnAdd" class="btn grow" data-ic="plus">إضافة</button>
           <button id="btnCancelEdit" class="btn" hidden>إلغاء التعديل</button>
         </div>
       </div>
@@ -102,10 +110,11 @@
   </main>
 
   <section id="viewSet" hidden>
+    <h2 class="sh">تصدير</h2>
     <div class="card">
       <h2>تصدير عام (كل المشروع)</h2>
       <p class="note">الكود ده بيشمل قسمي العمل والشخصي. انسخه واحفظه في مكان أمان (رسالة لنفسك مثلاً) وتقدر تستورده في أي وقت أو على جهاز تاني.</p>
-      <input id="expPrev" class="prev" type="text" readonly dir="ltr" aria-label="معاينة الكود العام">
+      <input id="expPrev" class="prev" type="text" readonly dir="ltr" aria-label="معاينة الكود">
       <p id="expCnt" class="note"></p>
       <div class="btnrow">
         <button id="btnCopy" class="btn grow" data-ic="copy">نسخ الكود العام</button>
@@ -113,21 +122,35 @@
       </div>
       <div id="qrBox" hidden><canvas id="qrCv"></canvas><p id="qrMsg" class="note"></p></div>
     </div>
-    <div class="card">
-      <h2 id="tabExpTtl">تصدير القسم الحالي فقط</h2>
-      <p id="tabExpNote" class="note">الكود ده بيشمل القسم المفتوح بس، والقسم التاني مش بيدخل فيه.</p>
-      <input id="tabPrev" class="prev" type="text" readonly dir="ltr" aria-label="معاينة كود التبويب">
-      <p id="tabCnt" class="note"></p>
+    <div class="card" id="exWCard">
+      <h2>تصدير مصاريف العمل فقط</h2>
+      <p class="note">الكود ده بيشمل قسم مصاريف العمل بس، وقسم الشخصي مش بيدخل فيه.</p>
+      <input id="exWPrev" class="prev" type="text" readonly dir="ltr" aria-label="معاينة الكود">
+      <p id="exWCnt" class="note"></p>
       <div class="btnrow">
-        <button id="btnCopyTab" class="btn grow" data-ic="copy"><span id="lblCopyTab">نسخ كود التبويب</span></button>
-        <button id="btnQrTab" class="btn grow" data-ic="qr">عرض QR</button>
+        <button id="btnCopyW" class="btn grow" data-ic="copy">نسخ كود مصاريف العمل</button>
+        <button id="btnQrW" class="btn grow" data-ic="qr">عرض QR</button>
       </div>
-      <div id="tqrBox" hidden><canvas id="tqrCv"></canvas><p id="tqrMsg" class="note"></p></div>
+      <div id="wqrBox" hidden><canvas id="wqrCv"></canvas><p id="wqrMsg" class="note"></p></div>
     </div>
+    <div class="card" id="exPCard">
+      <h2>تصدير مصاريف شخصية فقط</h2>
+      <p class="note">الكود ده بيشمل قسم مصاريف شخصية بس، وقسم العمل مش بيدخل فيه.</p>
+      <input id="exPPrev" class="prev" type="text" readonly dir="ltr" aria-label="معاينة الكود">
+      <p id="exPCnt" class="note"></p>
+      <div class="btnrow">
+        <button id="btnCopyP" class="btn grow" data-ic="copy">نسخ كود مصاريف شخصية</button>
+        <button id="btnQrP" class="btn grow" data-ic="qr">عرض QR</button>
+      </div>
+      <div id="pqrBox" hidden><canvas id="pqrCv"></canvas><p id="pqrMsg" class="note"></p></div>
+    </div>
+    <div class="sdiv" role="separator"></div>
+    <h2 class="sh">استيراد</h2>
     <div class="card">
       <h2>استيراد عام (كل المشروع)</h2>
       <p class="note">الصق الكود هنا. الاستيراد بيستبدل كل البيانات الحالية، والأكواد القديمة بتدخل قسم العمل بس.</p>
-      <textarea id="impCode" rows="4" dir="ltr" placeholder="DX1:..."></textarea>
+      <div class="impwrap"><input id="impCode" class="prev" type="text" dir="ltr" placeholder="DX1:..." autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="استيراد عام (كل المشروع)"><button type="button" class="ib" data-clr="impCode" data-ic="x" aria-label="مسح الخانة"></button></div>
+      <p id="impCodeCnt" class="note"></p>
       <div class="btnrow">
         <button id="btnImport" class="btn grow" data-ic="check">استيراد</button>
         <button id="btnScan" class="btn grow" data-ic="qr">مسح QR</button>
@@ -136,7 +159,8 @@
     <div class="card">
       <h2>استيراد تبويب</h2>
       <p class="note">الصق كود تبويب واحد (عمل أو شخصي). بيستبدل بيانات التبويب ده بس ويدخل القسم الصح تلقائياً، والقسم التاني مابيتغيرش.</p>
-      <textarea id="impTab" rows="3" dir="ltr" placeholder="DT1:..."></textarea>
+      <div class="impwrap"><input id="impTab" class="prev" type="text" dir="ltr" placeholder="DT1:..." autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="استيراد تبويب"><button type="button" class="ib" data-clr="impTab" data-ic="x" aria-label="مسح الخانة"></button></div>
+      <p id="impTabCnt" class="note"></p>
       <div class="btnrow">
         <button id="btnImpTab" class="btn grow" data-ic="check">استيراد التبويب</button>
         <button id="btnScanTab" class="btn grow" data-ic="qr">مسح QR</button>
@@ -144,13 +168,14 @@
     </div>
     <div class="card">
       <h2>استيراد كروت فردية</h2>
-      <p class="note">الصق كود كارت أو أكتر. بيتضافوا على كروت القسم الحالي ومابيستبدلوش حاجة.</p>
-      <textarea id="impCards" rows="3" dir="ltr" placeholder="DC1:..."></textarea>
+      <p class="note">الصق كود كارت أو أكتر. بيتضافوا على كروت القسم (من جوه القسم: القسم الحالي، ومن البوابة: القسم اللي الكارت تابع له) ومابيستبدلوش حاجة.</p>
+      <div class="impwrap"><input id="impCards" class="prev" type="text" dir="ltr" placeholder="DC1:..." autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="استيراد كروت فردية"><button type="button" class="ib" data-clr="impCards" data-ic="x" aria-label="مسح الخانة"></button></div>
+      <p id="impCardsCnt" class="note"></p>
       <div class="btnrow">
         <button id="btnImpCards" class="btn grow" data-ic="plus">إضافة الكروت</button>
       </div>
     </div>
-    <p class="foot">الإصدار 1.3 - البيانات محفوظة على هذا الجهاز فقط، فصدّر الكود كل فترة.</p>
+    <p class="foot">الإصدار 1.4 - البيانات محفوظة على هذا الجهاز فقط، فصدّر الكود كل فترة.</p>
   </section>
 
 </div>
