@@ -116,8 +116,8 @@ input[type=checkbox]{width:22px;height:22px;padding:0;accent-color:var(--ac);fle
 .selbar{position:sticky;bottom:10px;display:flex;flex-wrap:wrap;gap:8px;background:var(--card);border:1px solid var(--ac);border-radius:12px;padding:8px;z-index:5}
 .selbar .btn{flex:1 1 40%;padding:9px 6px;font-size:14px}
 .btn:disabled{opacity:.5;cursor:default}
-#qrBox,#tqrBox{margin-top:10px;text-align:center}
-#qrCv,#tqrCv{width:100%;max-width:320px;border-radius:10px;image-rendering:pixelated}
+#qrBox,#wqrBox,#pqrBox{margin-top:10px;text-align:center}
+#qrCv,#wqrCv,#pqrCv{width:100%;max-width:320px;border-radius:10px;image-rendering:pixelated}
 #scanner{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:60;display:flex;align-items:center;justify-content:center;padding:16px}
 .scbox{width:100%;max-width:420px;text-align:center;color:#fff}
 .scbox .note{color:#ccd6e2;margin:10px 0}
@@ -175,11 +175,10 @@ input[type=checkbox]{width:22px;height:22px;padding:0;accent-color:var(--ac);fle
 .prev{direction:ltr;text-align:left;font-family:ui-monospace,Consolas,monospace;font-size:15px;letter-spacing:.3px;margin-bottom:6px;cursor:default}
 :root{--ok:#4aa8ff;--no:#ff6b6b}
 [data-theme="light"]{--ok:#2a7fd4;--no:#d33a3a}
-.sh{margin:6px 0 12px;text-align:center;font-size:18px;font-weight:700;color:var(--tx)}
 .sdiv{height:2px;margin:22px 0 14px;border-radius:2px;background:linear-gradient(90deg,transparent,var(--ac),transparent);opacity:.55}
 .impwrap{display:flex;gap:6px;align-items:center;margin-bottom:6px}
 .impwrap .prev{flex:1;min-width:0;margin-bottom:0}
-.gate>.gate-set{position:absolute;top:max(14px,env(safe-area-inset-top));left:14px;z-index:2}
+.gate>.gate-set{position:absolute;top:max(14px,env(safe-area-inset-top));right:14px;z-index:2}
 #tasksList{margin-top:10px}
 .tkl{margin:0 0 10px}
 .tkh{font-size:12px;color:var(--mut);margin:0 0 4px}
@@ -202,3 +201,7 @@ input[type=checkbox]{width:22px;height:22px;padding:0;accent-color:var(--ac);fle
 .st.badge svg{width:13px;height:13px}
 @media print{.pk{margin:2px 0 0;padding-right:12px}}
 .btn.wa{color:var(--ac)}
+@font-face{font-family:"Tajawal";font-weight:800;font-style:normal;font-display:swap;src:url(fonts/tajawal-800.woff2) format("woff2")}
+.sh{display:flex;align-items:center;justify-content:center;gap:10px;width:max-content;max-width:100%;margin:8px auto 14px;padding:8px 24px;border:1.5px solid var(--ac);border-radius:14px;background:linear-gradient(135deg,var(--acbg),transparent);box-shadow:0 0 0 3px var(--acbg);font-family:"Tajawal","Segoe UI",Tahoma,sans-serif;font-weight:800;font-size:21px;line-height:1.4;color:var(--ac)}
+.sh svg{width:20px;height:20px}
+#btnTheme.is-sun{color:#ffc83d}
