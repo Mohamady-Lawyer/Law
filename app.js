@@ -182,15 +182,26 @@
       if (mv) h += mvBarHtml('mvgo', 'mvx', selCount(ui.mvSel));
     }
     el.items.innerHTML = h;
-    el.tot.innerHTML = totalsHtml(d.items, d.balance);
+    el.tot.innerHTML = totalsHtml(d.items, d.balance, d.date);
   }
 
-  function totalsHtml(items, balance) {
-    var t = totalOf(items);
+  function extraPersonal(date) {
+    if (sec !== 'work' || !date) return null;
+    var o = readSec('personal'), total = 0, fromDraft = false, i;
+    for (i = 0; i < o.days.length; i++) if (o.days[i].date === date) total += totalOf(o.days[i].items);
+    if (o.draft && o.draft.date === date && o.draft.items.length) { var dt = totalOf(o.draft.items); if (dt) { total += dt; fromDraft = true; } }
+    return total > 0 ? { total: total, fromDraft: fromDraft } : null;
+  }
+  function totalsHtml(items, balance, date) {
+    var t = totalOf(items), p = extraPersonal(date);
     var h = '<div class="tot"><span>إجمالي المصاريف</span><span>' + esc(fmt(t)) + '</span></div>';
+    if (p) {
+      h += '<div class="tot pers"><span>مصاريف شخصية بنفس اليوم</span><span>' + esc(fmt(p.total)) + '</span></div>';
+      if (p.fromDraft) h += '<div class="pnote">يشمل مسودة شخصية غير محفوظة</div>';
+    }
     if (hasVal(balance)) {
-      var r = num(balance) - t;
-      h += '<div class="rem' + (r < 0 ? ' neg' : '') + '"><span>المتبقي من الرصيد</span><span>' + esc(fmt(r)) + '</span></div>';
+      var r = num(balance) - t - (p ? p.total : 0);
+      h += '<div class="rem' + (r < 0 ? ' neg' : '') + '"><span>المتبقي من الرصيد' + (p ? ' <small>(بعد خصم المصاريف الشخصية)</small>' : '') + '</span><span>' + esc(fmt(r)) + '</span></div>';
     }
     return h;
   }
@@ -359,7 +370,7 @@
     toast('تم حفظ اليوم في المحفوظ');
   }
 
-  el.dBal.addEventListener('input', function () { state.draft.balance = el.dBal.value.trim(); save(); el.tot.innerHTML = totalsHtml(state.draft.items, state.draft.balance); });
+  el.dBal.addEventListener('input', function () { state.draft.balance = el.dBal.value.trim(); save(); el.tot.innerHTML = totalsHtml(state.draft.items, state.draft.balance, state.draft.date); });
   el.dPlace.addEventListener('input', function () { state.draft.place = el.dPlace.value; save(); });
   function setTaskBtn() {
     var ed = ui.editingTask >= 0;
@@ -423,6 +434,7 @@
   el.dDateIn.addEventListener('change', function () {
     if (!el.dDateIn.value) return;
     state.draft.date = el.dDateIn.value;
+    el.tot.innerHTML = totalsHtml(state.draft.items, state.draft.balance, state.draft.date);
     el.dDateTxt.textContent = dayName(state.draft.date) + ' - ' + fmtDate(state.draft.date);
     save();
   });
@@ -497,7 +509,7 @@
     if (hasVal(d.balance)) h += '<div class="line"><span>رصيد اليوم</span><span>' + esc(fmt(num(d.balance))) + '</span></div>';
     if (sec === 'work' && d.tl && d.tl.length) h += tasksViewHtml(d.tl);
     h += itemsViewHtml(d.items);
-    h += '<div id="ct">' + totalsHtml(d.items, d.balance) + '</div>';
+    h += '<div id="ct">' + totalsHtml(d.items, d.balance, d.date) + '</div>';
     h += '<div class="cbtns"><div class="row"><button class="btn w" data-act="edit">' + ic('edit') + 'تعديل</button><button class="ib" data-act="print1" aria-label="طباعة الكارت">' + ic('print') + '</button><button class="ib" data-act="copy1" aria-label="نسخ كود الكارت">' + ic('copy') + '</button><button class="ib" data-act="wa1" aria-label="مشاركة الكارت عبر واتساب">' + ic('wa') + '</button></div></div>';
     return h;
   }
@@ -523,7 +535,7 @@
       '<input type="number" step="1" inputmode="decimal" placeholder="المبلغ" data-f="na" value="' + esc(e.na) + '">' +
       '<input type="text" placeholder="سبب الصرف" data-f="nr" value="' + esc(e.nr) + '">' +
       '<span class="acts2"><button class="ib sm" data-act="additem" aria-label="إضافة بند">' + ic('plus') + '</button></span></div>';
-    h += '<div id="ct">' + totalsHtml(e.items, e.balance) + '</div>';
+    h += '<div id="ct">' + totalsHtml(e.items, e.balance, e.date) + '</div>';
     h += '<div class="cbtns"><div class="row"><button class="btn primary w" data-act="save">' + ic('check') + 'حفظ</button>' +
       '<button class="btn sm" data-act="cancel">إلغاء</button><button class="btn sm dng" data-act="delcard">' + ic('trash') + 'حذف الكارت</button></div></div>';
     return h;
@@ -677,9 +689,9 @@
     else if (f === 'ir') e.items[i].reason = t.value;
     else if (f === 'tt') e.tl[i].t = t.value;
     else e[f] = t.value;
-    if (f === 'ia' || f === 'balance') {
+    if (f === 'ia' || f === 'balance' || f === 'date') {
       var ct = el.cards.querySelector('.vc[data-id="' + e.id + '"] #ct');
-      if (ct) ct.innerHTML = totalsHtml(e.items, e.balance);
+      if (ct) ct.innerHTML = totalsHtml(e.items, e.balance, e.date);
     }
   });
 
@@ -742,8 +754,8 @@
     ui.selMode = true; ui.sel = {}; renderCards();
   });
 
-  function printCard(d) {
-    var t = totalOf(d.items);
+  function printCard(d, mode) {
+    var t = totalOf(d.items), pp = mode === 'only' ? null : extraPersonal(d.date);
     var h = '<div class="pcard"><div class="pt"><b>' + esc(dayName(d.date)) + ' ' + fmtDate(d.date) + '</b>' + (d.place ? '<span>' + esc(d.place) + '</span>' : '') + '</div>';
     if (hasVal(d.balance)) h += '<div class="pl"><span>رصيد اليوم:</span> ' + esc(fmt(num(d.balance))) + '</div>';
     if (sec === 'work' && d.tl && d.tl.length) {
@@ -757,14 +769,35 @@
       h += '</table>';
     }
     h += '<div class="pl pt2"><span>إجمالي المصاريف:</span> <b>' + esc(fmt(t)) + '</b>';
-    if (hasVal(d.balance)) h += ' &nbsp;&nbsp; <span>المتبقي من الرصيد:</span> <b>' + esc(fmt(num(d.balance) - t)) + '</b>';
+    if (pp) h += ' &nbsp;&nbsp; <span>مصاريف شخصية بنفس اليوم' + (pp.fromDraft ? ' (تشمل مسودة غير محفوظة)' : '') + ':</span> <b>' + esc(fmt(pp.total)) + '</b>';
+    if (hasVal(d.balance)) h += ' &nbsp;&nbsp; <span>المتبقي من الرصيد' + (pp ? ' (بعد خصم المصاريف الشخصية)' : '') + ':</span> <b>' + esc(fmt(num(d.balance) - t - (pp ? pp.total : 0))) + '</b>';
     return h + '</div></div>';
   }
   function printDays(list) {
+    if (sec === 'work' && list.some(function (c) { return extraPersonal(c.date); })) {
+      var ov = document.createElement('div');
+      ov.className = 'mvov';
+      ov.innerHTML = '<div class="mvbox" role="dialog" aria-modal="true"><h3>طباعة ' + (list.length > 1 ? list.length + ' كروت' : 'الكارت') + '</h3><div class="mvlist">' +
+        '<button type="button" class="btn mvopt dr" data-m="full"><b>الكارت بالكامل</b><small>مع مصاريف شخصية بنفس اليوم والمتبقي بعد خصمها</small></button>' +
+        '<button type="button" class="btn mvopt" data-m="only"><b>المصاريف فقط</b><small>من غير المصاريف الشخصية، والمتبقي من مصاريف العمل بس</small></button>' +
+        '</div><button type="button" class="btn" data-x="1">إلغاء</button></div>';
+      ov.addEventListener('click', function (e) {
+        var m = e.target.closest('[data-m]');
+        if (e.target === ov || e.target.closest('[data-x]') || m) {
+          if (ov.parentNode) ov.parentNode.removeChild(ov);
+          if (m) doPrint(list, m.getAttribute('data-m'));
+        }
+      });
+      document.body.appendChild(ov);
+      return;
+    }
+    doPrint(list, 'full');
+  }
+  function doPrint(list, mode) {
     var now = new Date(), pd = p2(now.getDate()) + '/' + p2(now.getMonth() + 1) + '/' + now.getFullYear(), h = '';
     for (var i = 0; i < list.length; i += 2) {
       h += '<div class="ppage"><div class="phead"><b>' + secTitle() + '</b><span>تاريخ الطباعة: ' + pd + '</span></div>';
-      for (var j = i; j < Math.min(i + 2, list.length); j++) h += printCard(list[j]);
+      for (var j = i; j < Math.min(i + 2, list.length); j++) h += printCard(list[j], mode);
       h += '</div>';
     }
     el.printArea.innerHTML = h;
