@@ -25,6 +25,7 @@
   P.x = '<path d="M18 6l-12 12M6 6l12 12"/>';
   P.wa = '<path d="M3 21l1.65 -3.8a9 9 0 1 1 3.4 2.9l-5.05 .9"/><path d="M9 10a.5 .5 0 0 0 1 0v-1a.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a.5 .5 0 0 0 0 -1h-1a.5 .5 0 0 0 0 1"/>';
   P.download = '<path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2"/><path d="M7 11l5 5l5 -5"/><path d="M12 4l0 12"/>';
+  P.move = '<path d="M7 10h14l-4 -4"/><path d="M17 14h-14l4 4"/>';
   P.upload = '<path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2"/><path d="M7 9l5 -5l5 5"/><path d="M12 4l0 12"/>';
   function ic(n) {
     return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + P[n] + '</svg>';
@@ -53,7 +54,7 @@
   function hasVal(v) { return v !== '' && v !== null && v !== undefined && isFinite(parseFloat(v)); }
 
   var state = { days: [], draft: null };
-  var ui = { tab: 1, open: null, edit: null, editingIdx: -1, editingTask: -1, gateSet: false, selMode: false, sel: {} };
+  var ui = { tab: 1, open: null, edit: null, editingIdx: -1, editingTask: -1, gateSet: false, mvMode: false, mvSel: {}, selMode: false, sel: {} };
   var sec = 'work';
 
   function cleanTl(a) {
@@ -151,22 +152,34 @@
     renderTasks(); setTaskBtn();
   }
 
+  function otherTitle() { return titleOf(sec === 'work' ? 'personal' : 'work'); }
+  function selCount(m) { var n = 0; for (var k in m) if (m[k]) n++; return n; }
+  function mvBarHtml(go, x, n) {
+    return '<div class="mvbar"><button class="btn primary" data-act="' + go + '"' + (n ? '' : ' disabled') + '>' + ic('move') + 'نقل (' + n + ') إلى ' + otherTitle() + '</button>' +
+      '<button class="btn" data-act="' + x + '">إلغاء</button></div>';
+  }
   function renderItems() {
     var d = state.draft, h = '';
     if (!d.items.length) {
+      ui.mvMode = false; ui.mvSel = {};
       h = '<div class="empty">ما فيش مصاريف لسه. اكتب أول مبلغ فوق واضغط إضافة.</div>';
     } else {
+      var mv = ui.mvMode;
+      if (!mv) h += '<div class="mvtop"><button class="btn sm" data-act="mvon">' + ic('move') + 'نقل بنود إلى ' + otherTitle() + '</button></div>';
       h += '<div class="rw t"><span>م</span><span>المبلغ</span><span>سبب الصرف</span><span></span></div>';
       d.items.forEach(function (it, i) {
-        h += '<div class="rw' + (ui.editingIdx === i ? ' ed' : '') + '">' +
+        var on = mv && ui.mvSel[i];
+        h += '<div class="rw' + (ui.editingIdx === i ? ' ed' : '') + (on ? ' selr' : '') + '"' + (mv ? ' data-act="isel" data-i="' + i + '"' : '') + '>' +
           '<span class="n">' + (i + 1) + '</span>' +
           '<span class="a">' + esc(fmt(num(it.amt))) + '</span>' +
           '<span>' + esc(it.reason) + '</span>' +
-          '<span class="acts2">' +
-          '<button class="ib sm" data-act="ei" data-i="' + i + '" aria-label="تعديل البند">' + ic('edit') + '</button>' +
-          '<button class="ib sm" data-act="di" data-i="' + i + '" aria-label="حذف البند">' + ic('trash') + '</button>' +
+          '<span class="acts2">' + (mv
+            ? '<button class="ckc' + (on ? ' on' : '') + '" data-act="isel" data-i="' + i + '" aria-label="تحديد البند">' + ic('check') + '</button>'
+            : '<button class="ib sm" data-act="ei" data-i="' + i + '" aria-label="تعديل البند">' + ic('edit') + '</button>' +
+              '<button class="ib sm" data-act="di" data-i="' + i + '" aria-label="حذف البند">' + ic('trash') + '</button>') +
           '</span></div>';
       });
+      if (mv) h += mvBarHtml('mvgo', 'mvx', selCount(ui.mvSel));
     }
     el.items.innerHTML = h;
     el.tot.innerHTML = totalsHtml(d.items, d.balance);
@@ -211,6 +224,16 @@
     var b = e.target.closest('[data-act]');
     if (!b) return;
     var i = +b.getAttribute('data-i');
+    var ac = b.getAttribute('data-act');
+    if (ac === 'mvon') { if (ui.editingIdx >= 0) cancelItemEdit(); ui.mvMode = true; ui.mvSel = {}; renderItems(); return; }
+    if (ac === 'mvx') { ui.mvMode = false; ui.mvSel = {}; renderItems(); return; }
+    if (ac === 'isel') { if (ui.mvSel[i]) delete ui.mvSel[i]; else ui.mvSel[i] = true; renderItems(); return; }
+    if (ac === 'mvgo') {
+      var ix = Object.keys(ui.mvSel).filter(function (k) { return ui.mvSel[k]; }).map(Number).sort(function (p, q) { return p - q; });
+      if (!ix.length) { toast('حدد بند واحد على الأقل'); return; }
+      startMove({ type: 'draft' }, ix, state.draft.items, null);
+      return;
+    }
     if (b.getAttribute('data-act') === 'di') {
       if (!confirm('حذف البند رقم ' + (i + 1) + '؟')) return;
       state.draft.items.splice(i, 1);
@@ -227,6 +250,80 @@
       el.iAmt.scrollIntoView({ block: 'center' });
     }
   });
+
+  /* ---------- move items between sections ---------- */
+  function chooseDest(osec, os, n, total, cb) {
+    var ov = document.createElement('div');
+    ov.className = 'mvov';
+    var h = '<div class="mvbox" role="dialog" aria-modal="true"><h3>نقل ' + n + ' بند (إجمالي ' + esc(fmt(total)) + ') إلى ' + titleOf(osec) + '</h3><div class="mvlist">';
+    var any = false;
+    if (!draftBlank(os.draft)) {
+      any = true;
+      h += '<button type="button" class="btn mvopt dr" data-d="1"><b>المسودة المفتوحة</b><small>' + (os.draft.place ? esc(os.draft.place) + ' - ' : '') + os.draft.items.length + ' بند</small></button>';
+    }
+    os.days.slice().sort(function (p, q) {
+      if (p.date < q.date) return 1;
+      if (p.date > q.date) return -1;
+      return (q.id || 0) - (p.id || 0);
+    }).forEach(function (c) {
+      any = true;
+      h += '<button type="button" class="btn mvopt" data-c="' + esc(String(c.id)) + '"><b>' + esc(dayName(c.date)) + ' ' + fmtDate(c.date) + '</b><small>' + (c.place ? esc(c.place) + ' - ' : '') + c.items.length + ' بند</small></button>';
+    });
+    if (!any) h += '<div class="empty">ما فيش كروت ولا مسودة مفتوحة في ' + titleOf(osec) + '. اعمل كارت الأول وبعدين انقل له.</div>';
+    h += '</div><button type="button" class="btn" data-x="1">إلغاء</button></div>';
+    ov.innerHTML = h;
+    function close() { if (ov.parentNode) ov.parentNode.removeChild(ov); }
+    ov.addEventListener('click', function (e) {
+      if (e.target === ov || e.target.closest('[data-x]')) { close(); return; }
+      var o = e.target.closest('.mvopt');
+      if (!o) return;
+      close();
+      if (o.hasAttribute('data-d')) cb({ type: 'draft', label: 'المسودة المفتوحة في ' + titleOf(osec) });
+      else {
+        var cid = o.getAttribute('data-c'), card = null;
+        for (var i = 0; i < os.days.length; i++) if (String(os.days[i].id) === cid) card = os.days[i];
+        if (card) cb({ type: 'card', id: card.id, label: 'كارت ' + fmtDate(card.date) + ' في ' + titleOf(osec) });
+      }
+    });
+    document.body.appendChild(ov);
+  }
+
+  function moveItems(src, idxs, osec, os, target) {
+    var srcDay = src.type === 'draft' ? null : findDay(src.id);
+    var arr = src.type === 'draft' ? state.draft.items : (srcDay ? srcDay.items : null);
+    if (!arr) { toast('الكارت مش موجود'); return false; }
+    var moved = idxs.map(function (i) { return { amt: num(arr[i].amt), reason: String(arr[i].reason || '') }; });
+    function pick(o) {
+      if (target.type === 'draft') return o.draft;
+      for (var k = 0; k < o.days.length; k++) if (o.days[k].id === target.id) return o.days[k];
+      return null;
+    }
+    var t = pick(os);
+    if (!t) { toast('الوجهة مش موجودة'); return false; }
+    var before = t.items.length;
+    t.items = t.items.concat(moved);
+    writeSec(osec, os);
+    var t2 = pick(readSec(osec));
+    if (!t2 || t2.items.length !== before + moved.length) { toast('ما اتنقلش: حصلت مشكلة في الحفظ'); return false; }
+    var keep = arr.filter(function (x, i) { return idxs.indexOf(i) < 0; });
+    if (src.type === 'draft') state.draft.items = keep; else srcDay.items = keep;
+    save();
+    return true;
+  }
+
+  function startMove(src, idxs, list, pre) {
+    var osec = sec === 'work' ? 'personal' : 'work', os = readSec(osec);
+    var total = totalOf(idxs.map(function (i) { return { amt: list[i].amt }; }));
+    chooseDest(osec, os, idxs.length, total, function (target) {
+      if (!confirm('نقل ' + idxs.length + ' بند (إجمالي ' + fmt(total) + ') إلى ' + target.label + '؟')) return;
+      if (pre && !pre()) return;
+      if (moveItems(src, idxs, osec, os, target)) {
+        ui.mvMode = false; ui.mvSel = {};
+        renderItems(); renderCards();
+        toast('تم نقل ' + idxs.length + ' بند إلى ' + target.label);
+      }
+    });
+  }
 
   function saveDay() {
     var d = state.draft;
@@ -402,14 +499,19 @@
       '<div><label>رصيد اليوم</label><input type="number" step="1" inputmode="decimal" data-f="balance" value="' + esc(e.balance) + '"></div></div>';
     h += '<label>' + placeLbl() + '</label><input type="text" data-f="place" value="' + esc(e.place) + '" style="margin-bottom:' + (sec === 'work' ? '8' : '10') + 'px">';
     if (sec === 'work') h += tasksEditHtml(e);
+    var mvE = !!e.mvMode, mvS = e.mvSel || {};
+    if (e.items.length && !mvE) h += '<div class="mvtop"><button class="btn sm" data-act="cmv">' + ic('move') + 'نقل بنود إلى ' + otherTitle() + '</button></div>';
     if (e.items.length) h += '<div class="rw t"><span>م</span><span>المبلغ</span><span>سبب الصرف</span><span></span></div>';
     e.items.forEach(function (it, i) {
-      h += '<div class="rw"><span class="n">' + (i + 1) + '</span>' +
+      h += '<div class="rw' + (mvE && mvS[i] ? ' selr' : '') + '"><span class="n">' + (i + 1) + '</span>' +
         '<input type="number" step="1" inputmode="decimal" data-f="ia" data-i="' + i + '" value="' + esc(it.amt) + '">' +
         '<input type="text" data-f="ir" data-i="' + i + '" value="' + esc(it.reason) + '">' +
-        '<span class="acts2"><button class="ib sm" data-act="delitem" data-i="' + i + '" aria-label="حذف البند">' + ic('trash') + '</button></span></div>';
+        '<span class="acts2">' + (mvE
+          ? '<button class="ckc' + (mvS[i] ? ' on' : '') + '" data-act="csel" data-i="' + i + '" aria-label="تحديد البند">' + ic('check') + '</button>'
+          : '<button class="ib sm" data-act="delitem" data-i="' + i + '" aria-label="حذف البند">' + ic('trash') + '</button>') + '</span></div>';
     });
-    h += '<div class="rw nr"><span class="n">+</span>' +
+    if (mvE) h += mvBarHtml('cmvgo', 'cmvx', selCount(mvS));
+    if (!mvE) h += '<div class="rw nr"><span class="n">+</span>' +
       '<input type="number" step="1" inputmode="decimal" placeholder="المبلغ" data-f="na" value="' + esc(e.na) + '">' +
       '<input type="text" placeholder="سبب الصرف" data-f="nr" value="' + esc(e.nr) + '">' +
       '<span class="acts2"><button class="ib sm" data-act="additem" aria-label="إضافة بند">' + ic('plus') + '</button></span></div>';
@@ -455,12 +557,12 @@
 
   function saveEdit() {
     var e = ui.edit, d = findDay(e.id);
-    if (!d) { ui.edit = null; renderCards(); return; }
-    if (!e.date) { toast('اختار التاريخ'); return; }
+    if (!d) { ui.edit = null; renderCards(); return false; }
+    if (!e.date) { toast('اختار التاريخ'); return false; }
     if (hasVal(e.na)) {
-      if (!confirm('فيه مبلغ مكتوب ولسه ما اتضافش كبند. تكمل الحفظ من غيره؟')) return;
+      if (!confirm('فيه مبلغ مكتوب ولسه ما اتضافش كبند. تكمل الحفظ من غيره؟')) return false;
     }
-    if ((e.nt || '').trim() && !confirm('فيه مهمة مكتوبة ولسه ما اتضافتش. تكمل الحفظ من غيرها؟')) return;
+    if ((e.nt || '').trim() && !confirm('فيه مهمة مكتوبة ولسه ما اتضافتش. تكمل الحفظ من غيرها؟')) return false;
     d.date = e.date;
     d.balance = (e.balance === null || e.balance === undefined) ? '' : String(e.balance).trim();
     d.place = e.place.trim();
@@ -470,6 +572,7 @@
     ui.edit = null;
     save(); renderCards();
     toast('تم حفظ التعديل');
+    return true;
   }
 
   el.cards.addEventListener('click', function (ev) {
@@ -514,6 +617,22 @@
       renderCards();
     } else if (act === 'addtask') {
       addEditTask(card);
+    } else if (act === 'cmv') {
+      ui.edit.mvMode = true; ui.edit.mvSel = {};
+      renderCards();
+    } else if (act === 'cmvx') {
+      ui.edit.mvMode = false; ui.edit.mvSel = {};
+      renderCards();
+    } else if (act === 'csel') {
+      var ci = +b.getAttribute('data-i');
+      if (!ui.edit.mvSel) ui.edit.mvSel = {};
+      if (ui.edit.mvSel[ci]) delete ui.edit.mvSel[ci]; else ui.edit.mvSel[ci] = true;
+      renderCards();
+    } else if (act === 'cmvgo') {
+      var cs = ui.edit.mvSel || {};
+      var cix = Object.keys(cs).filter(function (k) { return cs[k]; }).map(Number).sort(function (p, q) { return p - q; });
+      if (!cix.length) { toast('حدد بند واحد على الأقل'); return; }
+      startMove({ type: 'card', id: ui.edit.id }, cix, ui.edit.items.slice(), function () { return saveEdit(); });
     } else if (act === 'pick') {
       if (ui.sel[id]) delete ui.sel[id]; else ui.sel[id] = true;
       renderCards();
@@ -582,7 +701,7 @@
   }
   function enterSection(n) {
     sec = n;
-    ui.open = null; ui.edit = null; ui.editingIdx = -1; ui.selMode = false; ui.sel = {};
+    ui.open = null; ui.edit = null; ui.editingIdx = -1; ui.selMode = false; ui.sel = {}; ui.mvMode = false; ui.mvSel = {};
     load();
     el.iAmt.value = ''; el.iReason.value = '';
     applySection(); fillDraftFields(); renderItems(); setAddBtn(); renderCards();
@@ -940,7 +1059,7 @@
     if (!confirm(msg)) return;
     if (w) writeSec('work', w);
     if (p) writeSec('personal', p);
-    ui.open = null; ui.edit = null; ui.editingIdx = -1; ui.selMode = false; ui.sel = {};
+    ui.open = null; ui.edit = null; ui.editingIdx = -1; ui.selMode = false; ui.sel = {}; ui.mvMode = false; ui.mvSel = {};
     load();
     el.iAmt.value = ''; el.iReason.value = '';
     fillDraftFields(); renderItems(); setAddBtn(); renderCards();
@@ -1016,7 +1135,7 @@
     var nm = secName(o.section);
     if (!confirm('هيتم استبدال قسم ' + nm + ' بالكامل (' + s.days.length + ' كارت) والمسودة الحالية فيه. القسم التاني مش هيتغير. تكمل؟')) return;
     writeSec(o.section, s);
-    ui.open = null; ui.edit = null; ui.editingIdx = -1; ui.selMode = false; ui.sel = {};
+    ui.open = null; ui.edit = null; ui.editingIdx = -1; ui.selMode = false; ui.sel = {}; ui.mvMode = false; ui.mvSel = {};
     load();
     el.iAmt.value = ''; el.iReason.value = '';
     fillDraftFields(); renderItems(); setAddBtn(); renderCards();
