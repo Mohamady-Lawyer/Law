@@ -252,13 +252,12 @@
   });
 
   /* ---------- move items between sections ---------- */
-  function chooseDest(osec, os, n, total, cb) {
+  function chooseDest(osec, os, n, total, srcDate, cb) {
     var ov = document.createElement('div');
     ov.className = 'mvov';
     var h = '<div class="mvbox" role="dialog" aria-modal="true"><h3>نقل ' + n + ' بند (إجمالي ' + esc(fmt(total)) + ') إلى ' + titleOf(osec) + '</h3><div class="mvlist">';
-    var any = false;
+    h += '<button type="button" class="btn mvopt nw" data-n="1"><b>+ كارت جديد في ' + titleOf(osec) + '</b><small>بتاريخ ' + esc(dayName(srcDate)) + ' ' + fmtDate(srcDate) + '</small></button>';
     if (!draftBlank(os.draft)) {
-      any = true;
       h += '<button type="button" class="btn mvopt dr" data-d="1"><b>المسودة المفتوحة</b><small>' + (os.draft.place ? esc(os.draft.place) + ' - ' : '') + os.draft.items.length + ' بند</small></button>';
     }
     os.days.slice().sort(function (p, q) {
@@ -266,10 +265,8 @@
       if (p.date > q.date) return -1;
       return (q.id || 0) - (p.id || 0);
     }).forEach(function (c) {
-      any = true;
       h += '<button type="button" class="btn mvopt" data-c="' + esc(String(c.id)) + '"><b>' + esc(dayName(c.date)) + ' ' + fmtDate(c.date) + '</b><small>' + (c.place ? esc(c.place) + ' - ' : '') + c.items.length + ' بند</small></button>';
     });
-    if (!any) h += '<div class="empty">ما فيش كروت ولا مسودة مفتوحة في ' + titleOf(osec) + '. اعمل كارت الأول وبعدين انقل له.</div>';
     h += '</div><button type="button" class="btn" data-x="1">إلغاء</button></div>';
     ov.innerHTML = h;
     function close() { if (ov.parentNode) ov.parentNode.removeChild(ov); }
@@ -278,7 +275,8 @@
       var o = e.target.closest('.mvopt');
       if (!o) return;
       close();
-      if (o.hasAttribute('data-d')) cb({ type: 'draft', label: 'المسودة المفتوحة في ' + titleOf(osec) });
+      if (o.hasAttribute('data-n')) cb({ type: 'new', date: srcDate, label: 'كارت جديد بتاريخ ' + fmtDate(srcDate) + ' في ' + titleOf(osec) });
+      else if (o.hasAttribute('data-d')) cb({ type: 'draft', label: 'المسودة المفتوحة في ' + titleOf(osec) });
       else {
         var cid = o.getAttribute('data-c'), card = null;
         for (var i = 0; i < os.days.length; i++) if (String(os.days[i].id) === cid) card = os.days[i];
@@ -293,6 +291,14 @@
     var arr = src.type === 'draft' ? state.draft.items : (srcDay ? srcDay.items : null);
     if (!arr) { toast('الكارت مش موجود'); return false; }
     var moved = idxs.map(function (i) { return { amt: num(arr[i].amt), reason: String(arr[i].reason || '') }; });
+    var nc = null;
+    if (target.type === 'new') {
+      var nid = Date.now();
+      while (os.days.some(function (x) { return x.id === nid; })) nid++;
+      nc = { id: nid, date: target.date, balance: '', place: '', tasks: '', tl: [], items: [] };
+      os.days.push(nc);
+      target = { type: 'card', id: nid, label: target.label };
+    }
     function pick(o) {
       if (target.type === 'draft') return o.draft;
       for (var k = 0; k < o.days.length; k++) if (o.days[k].id === target.id) return o.days[k];
@@ -314,7 +320,9 @@
   function startMove(src, idxs, list, pre) {
     var osec = sec === 'work' ? 'personal' : 'work', os = readSec(osec);
     var total = totalOf(idxs.map(function (i) { return { amt: list[i].amt }; }));
-    chooseDest(osec, os, idxs.length, total, function (target) {
+    var sd = src.type === 'draft' ? state.draft.date : ((ui.edit && ui.edit.id === src.id && ui.edit.date) ? ui.edit.date : (findDay(src.id) || {}).date);
+    if (!sd) sd = todayStr();
+    chooseDest(osec, os, idxs.length, total, sd, function (target) {
       if (!confirm('نقل ' + idxs.length + ' بند (إجمالي ' + fmt(total) + ') إلى ' + target.label + '؟')) return;
       if (pre && !pre()) return;
       if (moveItems(src, idxs, osec, os, target)) {

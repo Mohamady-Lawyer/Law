@@ -1,4 +1,4 @@
-var CACHE = 'daily-expenses-v8';
+var CACHE = 'daily-expenses-v9';
 var FILES = ['./', 'index.html', 'style.css', 'app.js', 'qrcode.js', 'jsqr.js', 'manifest.json', 'fonts/tajawal-800.woff2', 'icons/icon-192.png', 'icons/icon-512.png'];
 
 self.addEventListener('install', function (e) {
