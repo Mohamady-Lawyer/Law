@@ -23,6 +23,7 @@
   P.print = '<path d="M17 17h2a2 2 0 0 0 2 -2v-4a2 2 0 0 0 -2 -2h-14a2 2 0 0 0 -2 2v4a2 2 0 0 0 2 2h2"/><path d="M17 9v-4a2 2 0 0 0 -2 -2h-6a2 2 0 0 0 -2 2v4"/><path d="M7 15a2 2 0 0 1 2 -2h6a2 2 0 0 1 2 2v4a2 2 0 0 1 -2 2h-6a2 2 0 0 1 -2 -2l0 -4"/>';
   P.qr = '<path d="M4 5a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z"/><path d="M14 5a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z"/><path d="M4 15a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z"/><path d="M7 7l0 .01M17 7l0 .01M7 17l0 .01M14 14l3 0M20 14l0 .01M14 14l0 3M14 20l3 0M17 17l3 0M20 17l0 3"/>';
   P.x = '<path d="M18 6l-12 12M6 6l12 12"/>';
+  P.sum = '<path d="M18 16v2a1 1 0 0 1 -1 1h-11l6 -7l-6 -7h11a1 1 0 0 1 1 1v2"/>';
   P.wa = '<path d="M3 21l1.65 -3.8a9 9 0 1 1 3.4 2.9l-5.05 .9"/><path d="M9 10a.5 .5 0 0 0 1 0v-1a.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a.5 .5 0 0 0 0 -1h-1a.5 .5 0 0 0 0 1"/>';
   P.download = '<path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2"/><path d="M7 11l5 5l5 -5"/><path d="M12 4l0 12"/>';
   P.move = '<path d="M7 10h14l-4 -4"/><path d="M17 14h-14l4 4"/>';
@@ -35,7 +36,7 @@
   var el = {};
   ['btnBack', 'ttl', 'btnTheme', 'btnSet', 'viewMain', 'viewSet', 'p1', 'p2', 'dDateTxt', 'btnDate', 'dDateIn',
     'dBal', 'dPlace', 'iAmt', 'iReason', 'btnAdd', 'btnCancelEdit', 'items', 'tot', 'btnSaveDay',
-    'cards', 'btnCopy', 'impCode', 'btnImport', 'toast', 'btnPrintSel', 'btnQr', 'qrBox', 'qrCv', 'qrMsg', 'btnScan', 'scanner', 'scVideo', 'btnScClose', 'printArea', 'viewGate', 'app', 'btnGate', 'gateWork', 'gatePers', 'lblPlace', 'tasksBox', 'impCards', 'btnImpCards'].forEach(function (id) { el[id] = $(id); });
+    'cards', 'btnCopy', 'impCode', 'btnImport', 'toast', 'btnPrintSel', 'btnSum', 'btnQr', 'qrBox', 'qrCv', 'qrMsg', 'btnScan', 'scanner', 'scVideo', 'btnScClose', 'printArea', 'viewGate', 'app', 'btnGate', 'gateWork', 'gatePers', 'lblPlace', 'tasksBox', 'impCards', 'btnImpCards'].forEach(function (id) { el[id] = $(id); });
   ['expPrev', 'expCnt', 'exWPrev', 'exWCnt', 'btnCopyW', 'btnQrW', 'wqrBox', 'wqrCv', 'wqrMsg', 'exPPrev', 'exPCnt', 'btnCopyP', 'btnQrP', 'pqrBox', 'pqrCv', 'pqrMsg', 'exWCard', 'exPCard', 'impTab', 'btnImpTab', 'btnScanTab', 'impCodeCnt', 'impTabCnt', 'impCardsCnt', 'tTxt', 'btnAddTask', 'btnCancelTask', 'tasksList', 'btnGateSet', 'btnWaFull', 'btnWaW', 'btnWaP', 'impFile'].forEach(function (id) { el[id] = $(id); });
 
   function p2(n) { return n < 10 ? '0' + n : '' + n; }
@@ -745,13 +746,68 @@
       '<button class="btn" data-act="wasel"' + (n ? '' : ' disabled') + '>' + ic('wa') + 'واتساب</button>' +
       '<button class="btn" data-act="selcancel">إلغاء</button></div>';
   }
-  function syncHdr() { el.btnPrintSel.hidden = !el.viewSet.hidden || ui.tab !== 2; }
+  function syncHdr() {
+    el.btnPrintSel.hidden = !el.viewSet.hidden || ui.tab !== 2;
+    el.btnSum.hidden = !el.viewSet.hidden || ui.tab !== 2 || sec !== 'work';
+  }
   function exitSel() { ui.selMode = false; ui.sel = {}; renderCards(); }
   el.btnPrintSel.addEventListener('click', function () {
     if (ui.selMode) { exitSel(); return; }
     if (!state.days.length) { toast('ما فيش كروت للطباعة'); return; }
     if (ui.edit) { toast('خلّص تعديل الكارت أو ألغيه الأول'); return; }
     ui.selMode = true; ui.sel = {}; renderCards();
+  });
+
+
+  /* ---------- sum of total expenses (work section only) ---------- */
+  el.btnSum.addEventListener('click', function () {
+    var list = sorted();
+    if (!list.length) { toast('ما فيش كروت للجمع'); return; }
+    var mode = 'all', pick = {};
+    var ov = document.createElement('div');
+    ov.className = 'mvov';
+    function sumHtml() {
+      var n = 0, tot = 0;
+      list.forEach(function (d) { if (mode === 'all' || pick[d.id]) { n++; tot += totalOf(d.items); } });
+      return { n: n, tot: tot };
+    }
+    function draw() {
+      var r = sumHtml();
+      var h = '<div class="mvbox" role="dialog" aria-modal="true"><h3>جمع إجمالي المصاريف</h3>' +
+        '<div class="sumtog"><button type="button" class="btn' + (mode === 'all' ? ' on' : '') + '" data-m="all">كل الكروت</button>' +
+        '<button type="button" class="btn' + (mode === 'pick' ? ' on' : '') + '" data-m="pick">اختيار كروت</button></div>';
+      if (mode === 'pick') {
+        h += '<div class="mvlist">';
+        list.forEach(function (d, i) {
+          var on = !!pick[d.id];
+          h += '<div class="sumrow' + (on ? ' on' : '') + '" data-id="' + esc(String(d.id)) + '"><input type="checkbox" tabindex="-1"' + (on ? ' checked' : '') + '>' +
+            '<span class="sumt">' + (i + 1) + '- ' + esc(dayName(d.date)) + ' ' + fmtDate(d.date) + (d.place ? '<small>' + esc(d.place) + '</small>' : '') + '</span>' +
+            '<b>' + esc(fmt(totalOf(d.items))) + '</b></div>';
+        });
+        h += '<button type="button" class="btn sm" data-all="1">تحديد الكل</button></div>';
+      }
+      h += '<div class="sumres"><span>الإجمالي (' + r.n + ' كارت)</span><b>' + esc(fmt(r.tot)) + '</b></div>' +
+        '<button type="button" class="btn" data-x="1">إغلاق</button></div>';
+      ov.innerHTML = h;
+    }
+    ov.addEventListener('click', function (e) {
+      if (e.target === ov || e.target.closest('[data-x]')) { if (ov.parentNode) ov.parentNode.removeChild(ov); return; }
+      var m = e.target.closest('[data-m]');
+      if (m) { mode = m.getAttribute('data-m'); draw(); return; }
+      if (e.target.closest('[data-all]')) {
+        var all = list.every(function (d) { return pick[d.id]; });
+        pick = {}; if (!all) list.forEach(function (d) { pick[d.id] = true; });
+        draw(); return;
+      }
+      var row = e.target.closest('.sumrow');
+      if (row) {
+        var id = row.getAttribute('data-id');
+        for (var i = 0; i < list.length; i++) if (String(list[i].id) === id) { if (pick[list[i].id]) delete pick[list[i].id]; else pick[list[i].id] = true; }
+        draw();
+      }
+    });
+    draw();
+    document.body.appendChild(ov);
   });
 
   function printCard(d, mode) {
@@ -1272,6 +1328,7 @@
   el.btnSet.innerHTML = ic('gear');
   el.btnDate.innerHTML = ic('cal');
   el.btnPrintSel.innerHTML = ic('print');
+  el.btnSum.innerHTML = ic('sum');
   var icEls = document.querySelectorAll('[data-ic]');
   for (var q = 0; q < icEls.length; q++) icEls[q].insertAdjacentHTML('afterbegin', ic(icEls[q].getAttribute('data-ic')));
   initTheme();
